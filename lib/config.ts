@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import type { AppConfig } from '@/types';
 
-const CONFIG_PATH = path.join(process.env.DATA_DIR ?? process.cwd(), 'config.json');
+const CONFIG_PATH = path.join(process.env.DATA_DIR || process.cwd(), 'config.json');
 
 export function readConfig(): AppConfig {
   const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
