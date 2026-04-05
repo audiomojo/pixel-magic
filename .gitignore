@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# brainstorming sessions
+.superpowers/
+
+# pixel-magic runtime files
+config.json
+cache.db
+scan.log
+
+# test files
+test-photos/
