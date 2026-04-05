@@ -80,8 +80,9 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
 
       <div className="mb-3 space-y-2">
         <div>
-          <label className="mb-1 block text-xs text-muted-foreground">Inbound folder</label>
+          <label htmlFor="inbound-folder" className="mb-1 block text-xs text-muted-foreground">Inbound folder</label>
           <input
+            id="inbound-folder"
             value={inbound}
             onChange={(e) => setInbound(e.target.value)}
             placeholder="/absolute/path/to/inbound"
@@ -89,8 +90,9 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-muted-foreground">Output base folder</label>
+          <label htmlFor="outbound-folder" className="mb-1 block text-xs text-muted-foreground">Output base folder</label>
           <input
+            id="outbound-folder"
             value={outbound}
             onChange={(e) => setOutbound(e.target.value)}
             placeholder="/absolute/path/to/output"
@@ -100,10 +102,11 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
       </div>
 
       <div className="mb-3">
-        <label className="mb-1 block text-xs text-muted-foreground">
+        <label htmlFor="similarity-threshold" className="mb-1 block text-xs text-muted-foreground">
           Similarity threshold — <strong>{threshold}%</strong>
         </label>
         <input
+          id="similarity-threshold"
           type="range"
           min={80}
           max={100}
