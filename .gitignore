@@ -43,6 +43,9 @@ next-env.d.ts
 # brainstorming sessions
 .superpowers/
 
+# git worktrees
+.worktrees/
+
 # pixel-magic runtime files
 config.json
 cache.db
