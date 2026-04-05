@@ -22,14 +22,15 @@ ENV DATA_DIR=/data
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# Standalone output includes server.js + node_modules (with compiled .node binaries)
-COPY --from=builder /app/.next/standalone ./
-# Static assets must be copied separately — standalone does not include them
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
+
+# Standalone output includes server.js + node_modules (with compiled .node binaries)
+COPY --chown=nextjs:nodejs --from=builder /app/.next/standalone ./
+# Static assets must be copied separately — standalone does not include them
+COPY --chown=nextjs:nodejs --from=builder /app/.next/static ./.next/static
+COPY --chown=nextjs:nodejs --from=builder /app/public ./public
+
 USER nextjs
 
 EXPOSE 3000

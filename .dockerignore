@@ -6,5 +6,12 @@ cache.db-shm
 cache.db-wal
 config.json
 test-photos
+processing-inbound
+processing-outbound
 .worktrees
 docs
+plan
+scripts
+.superpowers
+.claude
+.DS_Store
