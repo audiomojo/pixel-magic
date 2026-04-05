@@ -45,6 +45,9 @@ export async function GET() {
 export async function DELETE() {
   try {
     clearAll();
+    scanState.lastScanAt = null;
+    scanState.scanDurationMs = null;
+    scanState.status = 'idle';
     return NextResponse.json({ cleared: true });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
