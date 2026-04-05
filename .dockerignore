@@ -1,0 +1,9 @@
+node_modules
+.next
+cache.db
+cache.db-shm
+cache.db-wal
+config.json
+test-photos
+.worktrees
+docs

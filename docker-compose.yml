@@ -1,0 +1,10 @@
+services:
+  pixel-magic:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - /Users/rich/Data/pixel-magic:/data
+    environment:
+      DATA_DIR: /data
+    restart: unless-stopped
