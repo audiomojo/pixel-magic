@@ -1,65 +1,135 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { ConfigPanel } from '@/components/ConfigPanel';
+import { ScanControl } from '@/components/ScanControl';
+import { ProgressPanel } from '@/components/ProgressPanel';
+import type { AppConfig, ProgressEvent, ScanStats } from '@/types';
+import type { ScanStatus } from '@/lib/scanState';
+
+interface StatsData {
+  pendingGroupCount: number;
+  singletonCount: number;
+  lastScanAt: string | null;
+  scanDurationMs: number | null;
+}
+
+export default function DashboardPage() {
+  const router = useRouter();
+
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
+  const [progressEvent, setProgressEvent] = useState<ProgressEvent | null>(null);
+  const [finalStats, setFinalStats] = useState<ScanStats | null>(null);
+  const [initialStats, setInitialStats] = useState<StatsData | null>(null);
+  const [lastScanAt, setLastScanAt] = useState<string | null>(null);
+  const [scanDurationMs, setScanDurationMs] = useState<number | null>(null);
+
+  // Load config and stats on mount
+  useEffect(() => {
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((data: AppConfig) => setConfig(data))
+      .catch(() => {});
+
+    fetch('/api/stats')
+      .then((r) => r.json())
+      .then((data: StatsData) => {
+        setInitialStats(data);
+        setLastScanAt(data.lastScanAt);
+        setScanDurationMs(data.scanDurationMs);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleStartScan() {
+    const res = await fetch('/api/scan', { method: 'POST' });
+
+    if (res.status === 409) {
+      toast.error('Scan already in progress');
+      return;
+    }
+    if (res.status === 400) {
+      toast.error('Set inbound and output folders first');
+      return;
+    }
+    if (!res.ok) {
+      toast.error('Failed to start scan');
+      return;
+    }
+
+    setScanStatus('running');
+    setProgressEvent(null);
+    setFinalStats(null);
+
+    const source = new EventSource('/api/progress');
+
+    source.onmessage = (e: MessageEvent<string>) => {
+      const event = JSON.parse(e.data) as ProgressEvent;
+      setProgressEvent(event);
+
+      if (event.type === 'complete') {
+        setScanStatus('complete');
+        if (event.stats) setFinalStats(event.stats);
+        source.close();
+        // Refresh stats to get accurate duration + updated pending counts for nav badge
+        fetch('/api/stats')
+          .then((r) => r.json())
+          .then((data: StatsData) => {
+            setInitialStats(data);
+            setScanDurationMs(data.scanDurationMs);
+          })
+          .catch(() => {});
+      }
+
+      if (event.type === 'error') {
+        setScanStatus('error');
+        toast.error('Scan encountered an error');
+        source.close();
+      }
+    };
+
+    source.onerror = () => {
+      setScanStatus('error');
+      toast.error('Lost connection to scan progress');
+      source.close();
+    };
+  }
+
+  async function handleAutoKeep() {
+    const res = await fetch('/api/singletons', { method: 'POST' });
+    if (!res.ok) {
+      toast.error('Failed to auto-keep singletons');
+      return;
+    }
+    const { count } = (await res.json()) as { ok: boolean; count: number };
+    toast.success(`Kept ${count} singleton${count !== 1 ? 's' : ''}`);
+    router.push('/review');
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="mx-auto max-w-2xl space-y-3 px-4 py-6">
+      <ConfigPanel
+        config={config}
+        scanning={scanStatus === 'running'}
+        onSaved={setConfig}
+      />
+      <ScanControl
+        status={scanStatus}
+        lastScanAt={lastScanAt}
+        scanDurationMs={scanDurationMs}
+        onStartScan={handleStartScan}
+      />
+      <ProgressPanel
+        status={scanStatus}
+        progressEvent={progressEvent}
+        finalStats={finalStats}
+        initialStats={initialStats}
+        onGoToReview={() => router.push('/review')}
+        onAutoKeep={handleAutoKeep}
+      />
     </div>
   );
 }
