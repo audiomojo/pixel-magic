@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ['image-hash', 'file-type', 'better-sqlite3', 'sharp'],
 };
 
 export default nextConfig;

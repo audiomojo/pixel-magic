@@ -1,0 +1,58 @@
+export type ImageStatus = 'pending' | 'kept' | 'recycled' | 'singleton_kept';
+
+export type ImageRecord = {
+  id?: number;
+  filePath: string;         // Absolute path in Inbound
+  hash: string;             // Blockhash hex string (256-bit, bit length 16)
+  fileSize: number;         // Bytes
+  width: number;            // Pixels
+  height: number;           // Pixels
+  dpiX: number;
+  dpiY: number;
+  dateTaken: string | null; // ISO 8601 from EXIF, or null
+  fileMtime: string;        // ISO 8601 file modification time (fallback date)
+  groupId: number | null;   // null = singleton (no near-duplicates)
+  status: ImageStatus;
+  addedAt: string;          // ISO 8601 scan time
+};
+
+export type ImageGroup = {
+  id: number;
+  representativePath: string; // Path of the first image to start the group
+  imageCount: number;
+  createdAt: string;
+};
+
+export type GroupDetail = {
+  group: ImageGroup;
+  images: ImageRecord[];
+};
+
+export type GroupResolution = {
+  keepPaths: string[];    // These go to Outbound - Keeping/YYYY/MM/
+  recyclePaths: string[]; // These go to Outbound - Recycle Bin/
+};
+
+export type ProgressEvent = {
+  type: 'progress' | 'grouping' | 'complete' | 'error';
+  phase: 'hashing' | 'grouping' | 'done';
+  current: number;
+  total: number;
+  currentFile?: string;
+  stats?: ScanStats;
+};
+
+export type ScanStats = {
+  totalScanned: number;
+  grouped: number;      // Images that belong to a similarity group
+  singletons: number;   // Images with no near-duplicates
+  errors: number;
+  groupCount: number;   // Number of distinct groups
+};
+
+export type AppConfig = {
+  inboundFolder: string;
+  outboundBase: string;  // Parent of "Keeping" and "Recycle Bin" subdirs
+  similarityThreshold: number;
+  supportedExtensions: string[];
+};
