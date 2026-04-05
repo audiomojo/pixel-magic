@@ -65,12 +65,14 @@ export default function DashboardPage() {
     setFinalStats(null);
 
     const source = new EventSource('/api/progress');
+    let finished = false;
 
     source.onmessage = (e: MessageEvent<string>) => {
       const event = JSON.parse(e.data) as ProgressEvent;
       setProgressEvent(event);
 
       if (event.type === 'complete') {
+        finished = true;
         setScanStatus('complete');
         if (event.stats) setFinalStats(event.stats);
         source.close();
@@ -79,12 +81,14 @@ export default function DashboardPage() {
           .then((r) => r.json())
           .then((data: StatsData) => {
             setInitialStats(data);
+            setLastScanAt(data.lastScanAt);
             setScanDurationMs(data.scanDurationMs);
           })
           .catch(() => {});
       }
 
       if (event.type === 'error') {
+        finished = true;
         setScanStatus('error');
         toast.error('Scan encountered an error');
         source.close();
@@ -92,6 +96,7 @@ export default function DashboardPage() {
     };
 
     source.onerror = () => {
+      if (finished) return;
       setScanStatus('error');
       toast.error('Lost connection to scan progress');
       source.close();
