@@ -25,7 +25,7 @@ import { runScan } from '@/lib/processor';
 import { clearAll, getAllGroups, getByGroupId } from '@/lib/db';
 import { GET as getGroups } from '@/app/api/groups/route';
 import { GET as getGroupDetail, POST as resolveGroup } from '@/app/api/groups/[id]/route';
-import { GET as getStats } from '@/app/api/stats/route';
+import { GET as getStats, DELETE as deleteStats } from '@/app/api/stats/route';
 import { POST as postSingletons } from '@/app/api/singletons/route';
 import { NextRequest } from 'next/server';
 
@@ -236,6 +236,25 @@ describe('GET /api/stats', () => {
 
     // After resolving at least one group, kept + recycled should be > 0
     expect((stats.keptCount as number) + (stats.recycledCount as number)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('DELETE /api/stats', () => {
+  it('clears all DB records and returns { cleared: true }', async () => {
+    const res = await deleteStats();
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { cleared: boolean };
+    expect(body.cleared).toBe(true);
+  });
+
+  it('GET /api/stats after clear returns zero counts', async () => {
+    const res = await getStats();
+    expect(res.status).toBe(200);
+    const stats = (await res.json()) as Record<string, unknown>;
+    expect(stats.totalScanned).toBe(0);
+    expect(stats.keptCount).toBe(0);
+    expect(stats.recycledCount).toBe(0);
+    expect(stats.pendingGroupCount).toBe(0);
   });
 });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllGroups, getByGroupId, getAllPending, getAllSingletons, getRecycled } from '@/lib/db';
+import { getAllGroups, getByGroupId, getAllPending, getAllSingletons, getRecycled, clearAll } from '@/lib/db';
 import { scanState } from '@/lib/scanState';
 import db from '@/lib/db';
 
@@ -37,6 +37,15 @@ export async function GET() {
       lastScanAt: scanState.lastScanAt,
       scanDurationMs: scanState.scanDurationMs,
     });
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}
+
+export async function DELETE() {
+  try {
+    clearAll();
+    return NextResponse.json({ cleared: true });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
