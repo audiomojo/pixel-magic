@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import type { ImageRecord, ImageGroup, ImageStatus } from '@/types';
 
-const DB_PATH = path.join(process.cwd(), 'cache.db');
+const DB_PATH = path.join(process.env.DATA_DIR ?? process.cwd(), 'cache.db');
 
 const db = new Database(DB_PATH);
 
