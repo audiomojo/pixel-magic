@@ -39,7 +39,7 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 function formatDuration(ms: number | null): string {
-  if (!ms) return '';
+  if (ms === null) return '';
   const s = Math.round(ms / 1000);
   if (s < 60) return ` · ${s}s`;
   return ` · ${Math.floor(s / 60)}m ${s % 60}s`;
