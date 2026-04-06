@@ -7,7 +7,13 @@ export async function GET() {
     const config = readConfig();
     return NextResponse.json(config);
   } catch {
-    return NextResponse.json({ error: 'Could not read config' }, { status: 500 });
+    // config.json doesn't exist yet (first run) — return defaults
+    return NextResponse.json({
+      inboundFolder: '',
+      outboundBase: '',
+      similarityThreshold: 90,
+      supportedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff', 'gif', 'bmp'],
+    } satisfies AppConfig);
   }
 }
 
