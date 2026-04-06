@@ -15,7 +15,7 @@ export async function POST() {
       const filename = path.basename(record.filePath);
       const dest = getKeepingPath(config.outboundBase, record, filename);
       await fs.mkdir(path.dirname(dest), { recursive: true });
-      await fs.copyFile(record.filePath, dest);
+      await fs.rename(record.filePath, dest);
       if (record.id !== undefined) updateStatus(record.id, 'singleton_kept');
       count++;
     }
