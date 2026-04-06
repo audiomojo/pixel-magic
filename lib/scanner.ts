@@ -15,7 +15,11 @@ export async function scanFolder(
   return files.sort();
 }
 
-export function excludeOutbound(files: string[], outboundBase: string): string[] {
-  const normalized = path.normalize(outboundBase);
-  return files.filter((f) => !path.normalize(f).startsWith(normalized));
+export function excludeOutbound(files: string[], outboundBase: string, inboundFolder: string): string[] {
+  const normalizedOut = path.normalize(outboundBase);
+  const normalizedIn = path.normalize(inboundFolder);
+  // If inboundFolder is inside outboundBase, no output files can appear in scan results
+  // (output dirs are siblings of inbound, not children), so skip exclusion entirely.
+  if (normalizedIn.startsWith(normalizedOut)) return files;
+  return files.filter((f) => !path.normalize(f).startsWith(normalizedOut));
 }

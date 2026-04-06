@@ -24,7 +24,7 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
   // Phase A — Hashing
   let allFiles = await scanFolder(config.inboundFolder, config.supportedExtensions);
   if (config.outboundBase) {
-    allFiles = excludeOutbound(allFiles, config.outboundBase);
+    allFiles = excludeOutbound(allFiles, config.outboundBase, config.inboundFolder);
   }
 
   emitProgress({ type: 'progress', phase: 'hashing', current: 0, total: allFiles.length });
