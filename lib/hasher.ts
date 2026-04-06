@@ -29,22 +29,21 @@ async function hashBuffer(buffer: Buffer): Promise<string> {
 }
 
 async function computeHash(filePath: string): Promise<string> {
-  // Fast path: image-hash supports JPEG, PNG, GIF, BMP, WebP natively
+  // Always resize to a small thumbnail before hashing to avoid image-hash/jimp memory limits.
+  // Perceptual hash is identical regardless of input resolution.
   try {
-    return await hashFilePath(filePath);
+    // sharp handles JPEG, PNG, WebP, TIFF, GIF, BMP, and most HEIC/HEIF
+    const thumb = await sharp(filePath, { failOn: 'none' })
+      .resize(256, 256, { fit: 'inside' })
+      .jpeg()
+      .toBuffer();
+    return await hashBuffer(thumb);
   } catch {
-    // Fallback 1: sharp → JPEG (handles TIFF, AVIF, misnamed files, etc.)
-    try {
-      const buffer = await sharp(filePath, { failOn: 'none' }).jpeg().toBuffer();
-      return await hashBuffer(buffer);
-    } catch {
-      // Fallback 2: HEIC/HEIF with HEVC codec — heic-convert bundles its own libheif with HEVC
-      const raw = await fs.readFile(filePath);
-      const jpegBuffer = Buffer.from(
-        await heicConvert({ buffer: raw, format: 'JPEG', quality: 0.92 })
-      );
-      return await hashBuffer(jpegBuffer);
-    }
+    // Fallback: HEVC-encoded HEIC that libvips can't decode — heic-convert has its own libheif
+    const raw = await fs.readFile(filePath);
+    const jpeg = Buffer.from(await heicConvert({ buffer: raw, format: 'JPEG', quality: 0.92 }));
+    const thumb = await sharp(jpeg).resize(256, 256, { fit: 'inside' }).jpeg().toBuffer();
+    return await hashBuffer(thumb);
   }
 }
 
