@@ -14,7 +14,7 @@ export function Nav() {
       .then((r) => r.json())
       .then((d: { pendingGroupCount: number }) => setPendingCount(d.pendingGroupCount))
       .catch(() => {});
-  }, []);
+  }, [pathname]);
 
   const links = [
     { href: '/', label: 'Dashboard', badge: null },
