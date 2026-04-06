@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readConfig } from '@/lib/config';
 import fs from 'fs/promises';
 import path from 'path';
+import sharp from 'sharp';
+import heicConvert from 'heic-convert';
 
 const MIME_TYPES: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -43,10 +45,29 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const buffer = await fs.readFile(filePath);
+    const raw = await fs.readFile(filePath);
     const ext = path.extname(filePath).slice(1).toLowerCase();
-    const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
-    return new Response(buffer, { headers: { 'Content-Type': contentType } });
+
+    // Convert to JPEG for browser display — handles HEIC, TIFF, and other non-web formats
+    try {
+      let jpegBuffer: Buffer;
+      if (ext === 'heic' || ext === 'heif') {
+        // Try sharp first (handles HEVC on some platforms); fall back to heic-convert
+        try {
+          jpegBuffer = await sharp(raw, { failOn: 'none' }).jpeg({ quality: 85 }).toBuffer();
+        } catch {
+          const converted = await heicConvert({ buffer: raw, format: 'JPEG', quality: 0.85 });
+          jpegBuffer = Buffer.from(converted);
+        }
+      } else {
+        jpegBuffer = await sharp(raw, { failOn: 'none' }).jpeg({ quality: 85 }).toBuffer();
+      }
+      return new Response(jpegBuffer.buffer as ArrayBuffer, { headers: { 'Content-Type': 'image/jpeg' } });
+    } catch {
+      // Fall back to serving the raw file if conversion fails
+      const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
+      return new Response(raw.buffer as ArrayBuffer, { headers: { 'Content-Type': contentType } });
+    }
   } catch {
     return NextResponse.json({ error: 'File not found' }, { status: 404 });
   }
