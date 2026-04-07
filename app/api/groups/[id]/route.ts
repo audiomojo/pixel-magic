@@ -5,6 +5,7 @@ import { getKeepingPath, getRecyclePath } from '@/lib/organizer';
 import fs from 'fs/promises';
 import path from 'path';
 import type { GroupResolution } from '@/types';
+import sharp from 'sharp';
 
 export async function GET(
   _req: NextRequest,
@@ -33,7 +34,7 @@ export async function POST(
     const { id } = await params;
     const groupId = parseInt(id, 10);
     const body = (await req.json()) as GroupResolution;
-    const { keepPaths, recyclePaths } = body;
+    const { keepPaths, recyclePaths, rotation } = body;
 
     const members = getByGroupId(groupId);
     const memberPaths = new Set(members.map((m) => m.filePath));
@@ -63,9 +64,18 @@ export async function POST(
       const record = members.find((m) => m.filePath === filePath);
       if (!record) continue;
       const filename = path.basename(filePath);
-      const dest = getKeepingPath(config.outboundBase, record, filename);
+      let dest = getKeepingPath(config.outboundBase, record, filename);
       await fs.mkdir(path.dirname(dest), { recursive: true });
-      await fs.rename(filePath, dest);
+
+      if (rotation) {
+        const jpegDest = dest.replace(/\.[^.]+$/, '.jpg');
+        await sharp(filePath).rotate(rotation).jpeg({ quality: 92 }).toFile(jpegDest);
+        await fs.unlink(filePath);
+        dest = jpegDest;
+      } else {
+        await fs.rename(filePath, dest);
+      }
+
       if (record.id !== undefined) updateStatus(record.id, 'kept');
     }
 
