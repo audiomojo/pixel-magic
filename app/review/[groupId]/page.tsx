@@ -52,9 +52,9 @@ export default function GroupReviewPage() {
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
 
-  function rotateCCW() {
+  const rotateCCW = useCallback(() => {
     setRotation((prev) => (((prev + 270) % 360) as 0 | 90 | 180 | 270));
-  }
+  }, []);
 
   const thumbRefs = useRef<(HTMLDivElement | null)[]>([]);
 
