@@ -239,11 +239,12 @@ describe('POST /api/groups/:id — group resolution', () => {
     });
     expect(res.status).toBe(200);
 
-    // The kept file should now exist in Keeping/ with a .jpg extension
+    // The kept file should have been converted to .jpg
     const keepingDir = path.join(outboundBase, 'Keeping');
     const files = await walkDir(keepingDir);
-    const jpgFiles = files.filter((f) => f.endsWith('.jpg'));
-    expect(jpgFiles.length).toBeGreaterThanOrEqual(1);
+    const expectedName = path.basename(keptMember.filePath).replace(/\.[^.]+$/, '.jpg');
+    const match = files.find((f) => f.endsWith(path.sep + expectedName));
+    expect(match).toBeDefined();
   });
 });
 
