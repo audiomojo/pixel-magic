@@ -27,6 +27,12 @@ function basename(filePath: string): string {
   return filePath.split('/').pop() ?? filePath;
 }
 
+function rotateBadge(rotation: number): string {
+  if (rotation === 0) return '';
+  const ccw = (360 - rotation) % 360;
+  return `–${ccw}°`;
+}
+
 function imageUrl(filePath: string): string {
   return `/api/images?path=${encodeURIComponent(filePath)}`;
 }
@@ -44,6 +50,11 @@ export default function GroupReviewPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
+
+  function rotateCCW() {
+    setRotation((prev) => (((prev + 270) % 360) as 0 | 90 | 180 | 270));
+  }
 
   const thumbRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -60,6 +71,7 @@ export default function GroupReviewPage() {
         setAllGroups(groups);
         setKeptPaths([]);
         setFocusedIdx(0);
+        setRotation(0);
       })
       .catch(() => toast.error('Failed to load group'))
       .finally(() => setLoading(false));
@@ -91,7 +103,7 @@ export default function GroupReviewPage() {
         const res = await fetch(`/api/groups/${groupId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ keepPaths, recyclePaths }),
+          body: JSON.stringify({ keepPaths, recyclePaths, rotation }),
         });
         if (!res.ok) {
           const { error } = (await res.json()) as { error: string };
@@ -107,7 +119,7 @@ export default function GroupReviewPage() {
         setSubmitting(false);
       }
     },
-    [allGroups, groupId, images, router],
+    [allGroups, groupId, images, rotation, router],
   );
 
   // Keyboard shortcuts: ← → navigate, Space toggle keep, Enter submit
@@ -188,6 +200,18 @@ export default function GroupReviewPage() {
             Keep All
           </Button>
 
+          <Button
+            size="sm"
+            variant={rotation !== 0 ? 'default' : 'outline'}
+            onClick={rotateCCW}
+          >
+            ↺ Rotate CCW{rotation !== 0 && (
+              <span className="ml-1 rounded bg-white/20 px-1 text-[10px]">
+                {rotateBadge(rotation)}
+              </span>
+            )}
+          </Button>
+
           <Dialog open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
             <DialogTrigger render={<Button size="sm" variant="outline" />}>
               Discard All
@@ -232,6 +256,7 @@ export default function GroupReviewPage() {
               src={imageUrl(focusedImage.filePath)}
               alt={basename(focusedImage.filePath)}
               className="max-h-full max-w-full object-contain"
+              style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
             />
           )}
         </div>
@@ -291,6 +316,7 @@ export default function GroupReviewPage() {
                 src={imageUrl(img.filePath)}
                 alt={basename(img.filePath)}
                 className="h-full w-full object-cover"
+                style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
               />
               {/* Keep checkbox overlay */}
               <input
