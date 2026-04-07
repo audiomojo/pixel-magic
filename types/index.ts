@@ -31,6 +31,7 @@ export type GroupDetail = {
 export type GroupResolution = {
   keepPaths: string[];    // These go to Outbound - Keeping/YYYY/MM/
   recyclePaths: string[]; // These go to Outbound - Recycle Bin/
+  rotation?: 0 | 90 | 180 | 270; // clockwise degrees for sharp; omitted = no rotation
 };
 
 export type ProgressEvent = {
