@@ -152,7 +152,7 @@ describe('POST /api/groups/:id — group resolution', () => {
 
     const req = makeRequest(`http://localhost/api/groups/${firstGroup.id}`, {
       method: 'POST',
-      body: JSON.stringify({ keepPaths: [keptPath], recyclePaths }),
+      body: JSON.stringify({ keepPaths: [keptPath], recyclePaths, rotation: 0 }),
       headers: { 'Content-Type': 'application/json' },
     });
     const res = await resolveGroup(req, {
@@ -207,6 +207,43 @@ describe('POST /api/groups/:id — group resolution', () => {
       params: Promise.resolve({ id: String(pendingGroup.id) }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it('rotation: 270 keeps file as .jpg in Keeping/', async () => {
+    // Find a group that still has pending members
+    const groups = getAllGroups();
+    const pendingGroup = groups.find((g) => {
+      const members = getByGroupId(g.id);
+      return members.some((m) => m.status === 'pending') && members.length >= 2;
+    });
+    if (!pendingGroup) {
+      console.warn('  No pending group available for rotation test — skipping');
+      return;
+    }
+
+    const members = getByGroupId(pendingGroup.id).filter((m) => m.status === 'pending');
+    const keptMember = members[0];
+    const recyclePaths = members.slice(1).map((m) => m.filePath);
+
+    const req = makeRequest(`http://localhost/api/groups/${pendingGroup.id}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        keepPaths: [keptMember.filePath],
+        recyclePaths,
+        rotation: 270,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await resolveGroup(req, {
+      params: Promise.resolve({ id: String(pendingGroup.id) }),
+    });
+    expect(res.status).toBe(200);
+
+    // The kept file should now exist in Keeping/ with a .jpg extension
+    const keepingDir = path.join(outboundBase, 'Keeping');
+    const files = await walkDir(keepingDir);
+    const jpgFiles = files.filter((f) => f.endsWith('.jpg'));
+    expect(jpgFiles.length).toBeGreaterThanOrEqual(1);
   });
 });
 
