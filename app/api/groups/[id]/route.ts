@@ -36,6 +36,10 @@ export async function POST(
     const body = (await req.json()) as GroupResolution;
     const { keepPaths, recyclePaths, rotation } = body;
 
+    if (rotation !== undefined && rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270) {
+      return NextResponse.json({ error: `Invalid rotation value: ${rotation}` }, { status: 400 });
+    }
+
     const members = getByGroupId(groupId);
     const memberPaths = new Set(members.map((m) => m.filePath));
 
@@ -64,14 +68,13 @@ export async function POST(
       const record = members.find((m) => m.filePath === filePath);
       if (!record) continue;
       const filename = path.basename(filePath);
-      let dest = getKeepingPath(config.outboundBase, record, filename);
+      const dest = getKeepingPath(config.outboundBase, record, filename);
       await fs.mkdir(path.dirname(dest), { recursive: true });
 
       if (rotation) {
         const jpegDest = dest.replace(/\.[^.]+$/, '.jpg');
         await sharp(filePath).rotate(rotation).jpeg({ quality: 92 }).toFile(jpegDest);
         await fs.unlink(filePath);
-        dest = jpegDest;
       } else {
         await fs.rename(filePath, dest);
       }
