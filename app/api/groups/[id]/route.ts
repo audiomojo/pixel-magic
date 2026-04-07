@@ -74,7 +74,7 @@ export async function POST(
       if (rotation) {
         const jpegDest = dest.replace(/\.[^.]+$/, '.jpg');
         await sharp(filePath).rotate(rotation).jpeg({ quality: 92 }).toFile(jpegDest);
-        await fs.unlink(filePath);
+        await fs.unlink(filePath); // Safe: unlink only runs after successful toFile()
       } else {
         await fs.rename(filePath, dest);
       }

@@ -306,7 +306,12 @@ export default function GroupReviewPage() {
               )}
               style={
                 img.width > 0 && img.height > 0
-                  ? { aspectRatio: `${img.width}/${img.height}` }
+                  ? {
+                      aspectRatio:
+                        rotation === 90 || rotation === 270
+                          ? `${img.height}/${img.width}`
+                          : `${img.width}/${img.height}`,
+                    }
                   : undefined
               }
               onClick={() => setFocusedIdx(idx)}
