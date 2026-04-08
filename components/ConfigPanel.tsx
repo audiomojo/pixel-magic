@@ -20,6 +20,9 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
   const [threshold, setThreshold] = useState(90);
   const [extensions, setExtensions] = useState<string[]>(['jpg', 'jpeg', 'png', 'heic', 'webp']);
   const [saving, setSaving] = useState(false);
+  const [aiScoringEnabled, setAiScoringEnabled] = useState(false);
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState('http://host.docker.internal:11434');
+  const [ollamaModel, setOllamaModel] = useState('qwen2.5vl:7b');
 
   // Sync local state when config loads asynchronously
   useEffect(() => {
@@ -28,6 +31,9 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
       setOutbound(config.outboundBase);
       setThreshold(config.similarityThreshold);
       setExtensions(config.supportedExtensions);
+      setAiScoringEnabled(config.aiScoringEnabled ?? false);
+      setOllamaBaseUrl(config.ollamaBaseUrl ?? 'http://host.docker.internal:11434');
+      setOllamaModel(config.ollamaModel ?? 'qwen2.5vl:7b');
     }
   }, [config]);
 
@@ -45,9 +51,9 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
         outboundBase: outbound.trim(),
         similarityThreshold: threshold,
         supportedExtensions: extensions,
-        aiScoringEnabled: config?.aiScoringEnabled ?? false,
-        ollamaBaseUrl: config?.ollamaBaseUrl ?? 'http://localhost:11434',
-        ollamaModel: config?.ollamaModel ?? 'llama3.2-vision:11b',
+        aiScoringEnabled,
+        ollamaBaseUrl: ollamaBaseUrl.trim(),
+        ollamaModel: ollamaModel.trim(),
       };
       const res = await fetch('/api/config', {
         method: 'POST',
@@ -145,6 +151,62 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="mb-2 block text-xs text-muted-foreground">AI Scoring</label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={aiScoringEnabled}
+              onChange={(e) => setAiScoringEnabled(e.target.checked)}
+              className="h-3.5 w-3.5 cursor-pointer accent-primary"
+            />
+            Enable automatic photo scoring via Ollama
+          </label>
+          {aiScoringEnabled && (
+            <>
+              <div>
+                <label htmlFor="ollama-url" className="mb-1 block text-xs text-muted-foreground">
+                  Ollama base URL
+                </label>
+                <input
+                  id="ollama-url"
+                  value={ollamaBaseUrl}
+                  onChange={(e) => setOllamaBaseUrl(e.target.value)}
+                  className="w-full rounded-md border bg-background px-3 py-1.5 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor="ollama-model" className="mb-1 block text-xs text-muted-foreground">
+                  Ollama model
+                </label>
+                <input
+                  id="ollama-model"
+                  value={ollamaModel}
+                  onChange={(e) => setOllamaModel(e.target.value)}
+                  className="w-full rounded-md border bg-background px-3 py-1.5 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await fetch('/api/scoring/rescore', { method: 'POST' });
+                  if (!res.ok) {
+                    const { error } = (await res.json()) as { error: string };
+                    toast.error(error);
+                  } else {
+                    toast.success('Re-scoring started');
+                  }
+                }}
+                className="rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground"
+              >
+                Re-score All
+              </button>
+            </>
+          )}
         </div>
       </div>
 
