@@ -104,11 +104,14 @@ export function ProgressPanel({
     return (
       <div className="rounded-xl border bg-card p-4">
         <p className="mb-3 text-sm font-medium">Scan complete</p>
-        <div className="mb-4 grid grid-cols-4 gap-2">
-          <StatTile value={finalStats.totalScanned} label="Scanned"   color="text-primary" />
-          <StatTile value={finalStats.groupCount}   label="Groups"    color="text-green-600 dark:text-green-400" />
+        <div className={cn('mb-4 grid gap-2', (finalStats.scored ?? 0) > 0 ? 'grid-cols-5' : 'grid-cols-4')}>
+          <StatTile value={finalStats.totalScanned} label="Scanned"    color="text-primary" />
+          <StatTile value={finalStats.groupCount}   label="Groups"     color="text-green-600 dark:text-green-400" />
           <StatTile value={finalStats.singletons}   label="Singletons" color="text-orange-600 dark:text-orange-400" />
-          <StatTile value={finalStats.errors}       label="Errors"    color="text-red-600 dark:text-red-400" />
+          <StatTile value={finalStats.errors}       label="Errors"     color="text-red-600 dark:text-red-400" />
+          {(finalStats.scored ?? 0) > 0 && (
+            <StatTile value={finalStats.scored ?? 0} label="Scored" color="text-purple-600 dark:text-purple-400" />
+          )}
         </div>
         <div className="flex gap-2">
           <Button size="sm" onClick={onGoToReview}>
@@ -129,6 +132,7 @@ export function ProgressPanel({
 
   const isHashing  = progressEvent.phase === 'hashing';
   const isGrouping = progressEvent.phase === 'grouping';
+  const isScoring  = progressEvent.phase === 'scoring';
   const hashPct =
     progressEvent.total > 0
       ? (progressEvent.current / progressEvent.total) * 100
@@ -141,6 +145,8 @@ export function ProgressPanel({
     singletons:   0,
     errors:       0,
     groupCount:   0,
+    scored:       0,
+    scoreErrors:  0,
   };
 
   return (
@@ -148,7 +154,7 @@ export function ProgressPanel({
       <p className="mb-3 text-sm font-medium">Progress</p>
 
       {/* Hashing phase */}
-      <div className={cn('mb-3', isGrouping && 'opacity-50')}>
+      <div className={cn('mb-3', (isGrouping || isScoring) && 'opacity-50')}>
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs font-semibold">Hashing</span>
           <span className="text-xs text-muted-foreground">
@@ -166,13 +172,41 @@ export function ProgressPanel({
       </div>
 
       {/* Grouping phase */}
-      <div className={cn('mb-4', isHashing && 'opacity-40')}>
+      <div className={cn('mb-4', isHashing && 'opacity-40', isScoring && 'opacity-50')}>
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs font-semibold">Grouping</span>
           <span className="text-xs text-muted-foreground">{isGrouping ? 'Running…' : 'waiting'}</span>
         </div>
         {isGrouping ? <IndeterminateBar /> : <ProgressBar pct={0} />}
       </div>
+
+      {/* Scoring phase — only shown if scan includes AI scoring */}
+      {isScoring && (
+        <div className="mb-4">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs font-semibold">AI Scoring</span>
+            <span className="text-xs text-muted-foreground">
+              {isScoring
+                ? `${progressEvent!.current} / ${progressEvent!.total}`
+                : `${finalStats?.scored ?? 0} scored`}
+            </span>
+          </div>
+          {isScoring ? (
+            <>
+              <ProgressBar
+                pct={progressEvent!.total > 0 ? (progressEvent!.current / progressEvent!.total) * 100 : 0}
+              />
+              {progressEvent!.currentFile && (
+                <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+                  {progressEvent!.currentFile}
+                </p>
+              )}
+            </>
+          ) : (
+            <ProgressBar pct={100} />
+          )}
+        </div>
+      )}
 
       {/* Live counters */}
       <div className="grid grid-cols-4 gap-2">
