@@ -117,7 +117,7 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
         <input
           id="similarity-threshold"
           type="range"
-          min={80}
+          min={50}
           max={100}
           step={1}
           value={threshold}
@@ -125,7 +125,7 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
           className="w-full accent-primary"
         />
         <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>80%</span>
+          <span>50%</span>
           <span>100%</span>
         </div>
       </div>
