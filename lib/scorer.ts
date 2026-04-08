@@ -140,14 +140,17 @@ async function runTiebreak(
       updateAiScore(id2, result.photo2Score, JSON.stringify({ score: result.photo2Score, rationale: result.rationale, tiebreak: true }));
     }
   } catch (err) {
-    console.error(`[scorer] Tiebreak error for group ${groupId}:`, err);
+    console.error(`[scorer] tiebreak error group=${groupId}:`, err);
   }
 }
 
 export async function startScorer(
   config: AppConfig,
 ): Promise<{ scored: number; scoreErrors: number }> {
-  if (scorerRunning) return { scored: 0, scoreErrors: 0 };
+  if (scorerRunning) {
+    console.log('[scorer] already running — skipped');
+    return { scored: 0, scoreErrors: 0 };
+  }
   scorerRunning = true;
   resetStuckScoring();
 
@@ -157,6 +160,7 @@ export async function startScorer(
   try {
     const { queued } = getScoringCounts();
     const total = queued;
+    console.log(`[scorer] starting — ${total} images queued`);
     let current = 0;
 
     while (true) {
@@ -183,15 +187,19 @@ export async function startScorer(
         const detail = parseScoreResponse(raw);
         updateAiScore(record.id, detail.score, JSON.stringify(detail));
         scored++;
+        console.log(
+          `[scorer] scored ${current + 1}/${total} score=${detail.score} type=${detail.contentType} file=${record.filePath}`
+        );
 
         if (record.groupId !== null) {
           const { allDone, topIds } = getGroupScoringState(record.groupId);
           if (allDone && topIds.length >= 2) {
+            console.log(`[scorer] tiebreak group=${record.groupId} ids=${topIds.join(',')}`);
             await runTiebreak(config, record.groupId, topIds);
           }
         }
       } catch (err) {
-        console.error(`[scorer] Error scoring ${record.filePath}:`, err);
+        console.error(`[scorer] error file=${record.filePath}:`, (err as Error).message);
         markScoreError(record.id);
         scoreErrors++;
       }
@@ -202,6 +210,7 @@ export async function startScorer(
     scorerRunning = false;
   }
 
+  console.log(`[scorer] done — scored=${scored} errors=${scoreErrors}`);
   return { scored, scoreErrors };
 }
 
