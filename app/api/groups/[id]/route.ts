@@ -14,6 +14,9 @@ export async function GET(
   try {
     const { id } = await params;
     const groupId = parseInt(id, 10);
+    if (Number.isNaN(groupId)) {
+      return NextResponse.json({ error: 'Invalid group id' }, { status: 400 });
+    }
     const groups = getAllGroups();
     const group = groups.find((g) => g.id === groupId);
     if (!group) {
@@ -33,6 +36,9 @@ export async function POST(
   try {
     const { id } = await params;
     const groupId = parseInt(id, 10);
+    if (Number.isNaN(groupId)) {
+      return NextResponse.json({ error: 'Invalid group id' }, { status: 400 });
+    }
     const body = (await req.json()) as GroupResolution;
     const { keepPaths, recyclePaths, rotation } = body;
 

@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { scoreColor, formatScoreTooltip, topScoredPaths } from '@/lib/scoreHelpers';
 import type { ImageGroup, ImageRecord } from '@/types';
 
 function formatBytes(bytes: number): string {
@@ -46,19 +47,13 @@ function scoreBadge(img: ImageRecord): ReactElement | null {
     );
   }
   if (img.aiScoreStatus !== 'scored' || img.aiScore == null) return null;
-  const score = img.aiScore;
-  const color =
-    score >= 75
-      ? 'bg-green-500 text-white'
-      : score >= 50
-        ? 'bg-yellow-500 text-black'
-        : 'bg-red-500 text-white';
   return (
-    <span className={`absolute right-1 top-1 rounded-full px-1 py-0.5 text-[9px] font-bold ${color}`}>
-      {Math.round(score)}
+    <span className={`absolute right-1 top-1 rounded-full px-1 py-0.5 text-[9px] font-bold ${scoreColor(img.aiScore)}`}>
+      {Math.round(img.aiScore)}
     </span>
   );
 }
+
 
 export default function GroupReviewPage() {
   const params = useParams<{ groupId: string }>();
@@ -96,15 +91,8 @@ export default function GroupReviewPage() {
         setRotation(0);
         setFocusedIdx(0);
 
-        // Auto-check the highest-scored image(s)
-        const scored = detail.images.filter((img) => img.aiScoreStatus === 'scored' && img.aiScore !== null);
-        if (scored.length > 0) {
-          const topScore = Math.max(...scored.map((img) => img.aiScore as number));
-          const topPaths = scored.filter((img) => img.aiScore === topScore).map((img) => img.filePath);
-          setKeptPaths(topPaths);
-        } else {
-          setKeptPaths([]);
-        }
+        // Auto-check the highest-scored image(s), or clear if none scored yet
+        setKeptPaths(topScoredPaths(detail.images));
 
         // Check if scoring is still in progress for this group
         const stillPending = detail.images.some(
@@ -174,12 +162,8 @@ export default function GroupReviewPage() {
         setImages(detail.images);
 
         // Re-apply auto-select whenever new scores arrive
-        const scored = detail.images.filter((img) => img.aiScoreStatus === 'scored' && img.aiScore !== null);
-        if (scored.length > 0) {
-          const topScore = Math.max(...scored.map((img) => img.aiScore as number));
-          const topPaths = scored.filter((img) => img.aiScore === topScore).map((img) => img.filePath);
-          setKeptPaths(topPaths);
-        }
+        const top = topScoredPaths(detail.images);
+        if (top.length > 0) setKeptPaths(top);
 
         setScoringActive(stillPending);
         if (!stillPending) clearInterval(interval);
@@ -358,28 +342,7 @@ export default function GroupReviewPage() {
               <>
                 <span className="mx-2">·</span>
                 <span
-                  title={
-                    focusedImage.aiScoreDetail
-                      ? (() => {
-                          try {
-                            const d = JSON.parse(focusedImage.aiScoreDetail) as {
-                              rationale?: string;
-                              sharpness?: number;
-                              exposure?: number;
-                              composition?: number;
-                              color?: number;
-                            };
-                            return [
-                              `Rationale: ${d.rationale ?? '—'}`,
-                              `Sharpness: ${d.sharpness ?? '—'}  Exposure: ${d.exposure ?? '—'}`,
-                              `Composition: ${d.composition ?? '—'}  Color: ${d.color ?? '—'}`,
-                            ].join('\n');
-                          } catch {
-                            return '';
-                          }
-                        })()
-                      : undefined
-                  }
+                  title={formatScoreTooltip(focusedImage.aiScoreDetail)}
                   className="cursor-help font-medium text-purple-700 dark:text-purple-300"
                 >
                   AI: {Math.round(focusedImage.aiScore as number)}

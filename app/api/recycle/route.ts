@@ -24,7 +24,9 @@ export async function DELETE() {
     try {
       const entries = await fs.readdir(recycleBinPath);
       await Promise.all(
-        entries.map((entry) => fs.rm(path.join(recycleBinPath, entry), { force: true }))
+        entries.map((entry) =>
+          fs.rm(path.join(recycleBinPath, entry), { recursive: true, force: true })
+        )
       );
     } catch {
       // Folder may not exist yet; ignore

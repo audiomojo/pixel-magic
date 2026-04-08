@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import type { ImageRecord, ImageGroup, ImageStatus } from '@/types';
+import type { ImageRecord, ImageGroup, ImageStatus, AiScoreStatus } from '@/types';
 
 const DB_PATH = path.join(process.env.DATA_DIR || process.cwd(), 'cache.db');
 
@@ -48,6 +48,10 @@ function rowToRecord(row: Record<string, unknown>): ImageRecord {
     groupId: row.group_id as number | null,
     status: row.status as ImageStatus,
     addedAt: row.added_at as string,
+    aiScore: (row.ai_score ?? null) as number | null,
+    aiScoreDetail: (row.ai_score_detail ?? null) as string | null,
+    aiScoredAt: (row.ai_scored_at ?? null) as string | null,
+    aiScoreStatus: (row.ai_score_status ?? undefined) as AiScoreStatus | undefined,
   };
 }
 
@@ -103,9 +107,6 @@ export function updateGroupId(recordId: number, groupId: number): void {
   db.prepare('UPDATE image_hashes SET group_id = ? WHERE id = ?').run(groupId, recordId);
 }
 
-export function updateGroupCount(groupId: number, count: number): void {
-  db.prepare('UPDATE image_groups SET image_count = ? WHERE id = ?').run(count, groupId);
-}
 
 export function updateStatus(recordId: number, status: ImageStatus): void {
   db.prepare('UPDATE image_hashes SET status = ? WHERE id = ?').run(status, recordId);

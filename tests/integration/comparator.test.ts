@@ -88,12 +88,11 @@ describe('isSimilar — Similar folder burst sequences', () => {
     expect(isSimilar(burst1320, burst1321, 80)).toBe(true);
   });
 
-  it('reports similarity between IMG_1320 and IMG_1388 (different sessions)', () => {
+  it('IMG_1320 and IMG_1388 (different sessions) are not similar at app threshold', () => {
     const sim = hashSimilarityPct(burst1320.hash, burst1388.hash);
     console.log(`  IMG_1320 vs IMG_1388 (diff session): ${sim.toFixed(1)}%`);
-    // Just verify a value is produced; different scenes may or may not be similar
-    expect(sim).toBeGreaterThanOrEqual(0);
-    expect(sim).toBeLessThanOrEqual(100);
+    // Different scenes from different sessions should not be flagged as duplicates
+    expect(isSimilar(burst1320, burst1388, THRESHOLD)).toBe(false);
   });
 
   it('PNG (indoor portrait) and HEIC burst shot are different subjects', () => {

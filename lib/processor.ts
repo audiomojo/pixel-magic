@@ -19,8 +19,6 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
     singletons: 0,
     errors: 0,
     groupCount: 0,
-    scored: 0,
-    scoreErrors: 0,
   };
 
   // Phase A — Hashing

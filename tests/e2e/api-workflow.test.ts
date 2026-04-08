@@ -212,6 +212,32 @@ describe('POST /api/groups/:id — group resolution', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects invalid rotation value with 400', async () => {
+    const groups = getAllGroups();
+    const pendingGroup = groups.find((g) => {
+      const members = getByGroupId(g.id);
+      return members.some((m) => m.status === 'pending') && members.length >= 2;
+    });
+    if (!pendingGroup) return;
+
+    const members = getByGroupId(pendingGroup.id).filter((m) => m.status === 'pending');
+    const req = makeRequest(`http://localhost/api/groups/${pendingGroup.id}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        keepPaths: [members[0].filePath],
+        recyclePaths: members.slice(1).map((m) => m.filePath),
+        rotation: 45,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await resolveGroup(req, {
+      params: Promise.resolve({ id: String(pendingGroup.id) }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('Invalid rotation');
+  });
+
   it('rotation: 270 keeps file as .jpg in Keeping/', async () => {
     // Find a group that still has pending members
     const groups = getAllGroups();

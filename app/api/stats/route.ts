@@ -1,38 +1,43 @@
 import { NextResponse } from 'next/server';
-import { getAllGroups, getByGroupId, getAllPending, getAllSingletons, getRecycled, clearAll } from '@/lib/db';
+import { clearAll } from '@/lib/db';
 import { scanState } from '@/lib/scanState';
 import db from '@/lib/db';
 
 export async function GET() {
   try {
-    const allGroups = getAllGroups();
-
-    const pendingGroups = allGroups.filter((g) => {
-      const members = getByGroupId(g.id);
-      return members.some((m) => m.status === 'pending');
-    });
-
-    const pendingGroupImageCount = pendingGroups.reduce((sum, g) => {
-      return sum + getByGroupId(g.id).filter((m) => m.status === 'pending').length;
-    }, 0);
+    const totalScanned = (
+      db.prepare('SELECT COUNT(*) as cnt FROM image_hashes').get() as { cnt: number }
+    ).cnt;
 
     const keptCount = (
       db.prepare("SELECT COUNT(*) as cnt FROM image_hashes WHERE status IN ('kept', 'singleton_kept')").get() as { cnt: number }
     ).cnt;
 
-    const recycledCount = getRecycled().length;
-    const singletonCount = getAllSingletons().length;
-
-    const totalScanned = (
-      db.prepare('SELECT COUNT(*) as cnt FROM image_hashes').get() as { cnt: number }
+    const recycledCount = (
+      db.prepare("SELECT COUNT(*) as cnt FROM image_hashes WHERE status = 'recycled'").get() as { cnt: number }
     ).cnt;
+
+    const singletonCount = (
+      db.prepare("SELECT COUNT(*) as cnt FROM image_hashes WHERE group_id IS NULL AND status = 'pending'").get() as { cnt: number }
+    ).cnt;
+
+    // Groups that still have at least one pending member, with their pending image counts
+    const pendingGroupRows = db.prepare(`
+      SELECT group_id, COUNT(*) as cnt
+      FROM image_hashes
+      WHERE status = 'pending' AND group_id IS NOT NULL
+      GROUP BY group_id
+    `).all() as { group_id: number; cnt: number }[];
+
+    const pendingGroupCount = pendingGroupRows.length;
+    const pendingGroupImageCount = pendingGroupRows.reduce((sum, row) => sum + row.cnt, 0);
 
     return NextResponse.json({
       totalScanned,
       keptCount,
       recycledCount,
       singletonCount,
-      pendingGroupCount: pendingGroups.length,
+      pendingGroupCount,
       pendingGroupImageCount,
       lastScanAt: scanState.lastScanAt,
       scanDurationMs: scanState.scanDurationMs,
