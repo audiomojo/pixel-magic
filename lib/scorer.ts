@@ -1,4 +1,6 @@
 import sharp from 'sharp';
+import heicConvert from 'heic-convert';
+import fs from 'fs/promises';
 import {
   getNextUnscoredImage,
   markScoring,
@@ -72,7 +74,16 @@ export function parseScoreResponse(raw: string): AiScoreDetail {
 }
 
 async function resizeForOllama(filePath: string): Promise<string> {
-  const buffer = await sharp(filePath)
+  let inputBuffer: Parameters<typeof sharp>[0] = filePath;
+
+  // sharp's libheif in Docker lacks the HEVC codec for iPhone HEICs — convert first
+  if (/\.heic$/i.test(filePath)) {
+    const raw = await fs.readFile(filePath);
+    const jpeg = await heicConvert({ buffer: raw, format: 'JPEG', quality: 0.9 });
+    inputBuffer = Buffer.from(jpeg);
+  }
+
+  const buffer = await sharp(inputBuffer)
     .resize({ width: 768, height: 768, fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: 80 })
     .toBuffer();
