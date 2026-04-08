@@ -33,6 +33,22 @@ db.exec(`
   );
 `);
 
+// ── AI scoring columns (idempotent migration) ──────────────────────────────
+function addColumnIfMissing(sql: string): void {
+  try {
+    db.exec(sql);
+  } catch {
+    // Column already exists — SQLite throws on duplicate column name
+  }
+}
+
+addColumnIfMissing("ALTER TABLE image_hashes ADD COLUMN ai_score REAL");
+addColumnIfMissing("ALTER TABLE image_hashes ADD COLUMN ai_score_detail TEXT");
+addColumnIfMissing("ALTER TABLE image_hashes ADD COLUMN ai_scored_at TEXT");
+addColumnIfMissing(
+  "ALTER TABLE image_hashes ADD COLUMN ai_score_status TEXT NOT NULL DEFAULT 'pending'"
+);
+
 function rowToRecord(row: Record<string, unknown>): ImageRecord {
   return {
     id: row.id as number,
@@ -51,7 +67,7 @@ function rowToRecord(row: Record<string, unknown>): ImageRecord {
     aiScore: (row.ai_score ?? null) as number | null,
     aiScoreDetail: (row.ai_score_detail ?? null) as string | null,
     aiScoredAt: (row.ai_scored_at ?? null) as string | null,
-    aiScoreStatus: (row.ai_score_status ?? undefined) as AiScoreStatus | undefined,
+    aiScoreStatus: ((row.ai_score_status as string) ?? 'pending') as AiScoreStatus,
   };
 }
 
@@ -167,6 +183,106 @@ export function deleteRecycled(): void {
 
 export function clearAll(): void {
   db.exec('DELETE FROM image_hashes; DELETE FROM image_groups;');
+}
+
+// ── AI Scoring helpers ─────────────────────────────────────────────────────
+
+export function getNextUnscoredImage(): ImageRecord | undefined {
+  const row = db
+    .prepare(`
+      SELECT * FROM image_hashes
+      WHERE ai_score_status = 'pending'
+        AND group_id IS NOT NULL
+        AND status = 'pending'
+      ORDER BY added_at ASC
+      LIMIT 1
+    `)
+    .get() as Record<string, unknown> | undefined;
+  return row ? rowToRecord(row) : undefined;
+}
+
+export function markScoring(recordId: number): void {
+  db.prepare("UPDATE image_hashes SET ai_score_status = 'scoring' WHERE id = ?").run(recordId);
+}
+
+export function updateAiScore(recordId: number, score: number, detail: string): void {
+  db.prepare(`
+    UPDATE image_hashes
+    SET ai_score = ?, ai_score_detail = ?, ai_scored_at = ?, ai_score_status = 'scored'
+    WHERE id = ?
+  `).run(score, detail, new Date().toISOString(), recordId);
+}
+
+export function markScoreError(recordId: number): void {
+  db.prepare("UPDATE image_hashes SET ai_score_status = 'error' WHERE id = ?").run(recordId);
+}
+
+export function resetScoreById(recordId: number): void {
+  db.prepare(`
+    UPDATE image_hashes
+    SET ai_score = NULL, ai_score_detail = NULL, ai_scored_at = NULL, ai_score_status = 'pending'
+    WHERE id = ?
+  `).run(recordId);
+}
+
+export function resetStuckScoring(): void {
+  db.prepare("UPDATE image_hashes SET ai_score_status = 'pending' WHERE ai_score_status = 'scoring'").run();
+}
+
+export function resetAllScores(): void {
+  db.prepare(`
+    UPDATE image_hashes
+    SET ai_score = NULL, ai_score_detail = NULL, ai_scored_at = NULL, ai_score_status = 'pending'
+    WHERE group_id IS NOT NULL AND status = 'pending'
+  `).run();
+}
+
+export function getScoringCounts(): {
+  queued: number;
+  scoring: number;
+  scored: number;
+  errors: number;
+} {
+  const count = (status: string): number =>
+    (
+      db
+        .prepare(
+          `SELECT COUNT(*) as cnt FROM image_hashes
+           WHERE group_id IS NOT NULL AND status = 'pending' AND ai_score_status = ?`
+        )
+        .get(status) as { cnt: number }
+    ).cnt;
+  return {
+    queued: count('pending'),
+    scoring: count('scoring'),
+    scored: count('scored'),
+    errors: count('error'),
+  };
+}
+
+export function getGroupScoringState(groupId: number): {
+  allDone: boolean;
+  topScore: number | null;
+  topIds: number[];
+} {
+  const rows = db
+    .prepare(
+      `SELECT id, ai_score, ai_score_status
+       FROM image_hashes WHERE group_id = ?`
+    )
+    .all(groupId) as { id: number; ai_score: number | null; ai_score_status: string }[];
+
+  const allDone = rows.every(
+    (r) => r.ai_score_status === 'scored' || r.ai_score_status === 'error'
+  );
+  if (!allDone) return { allDone: false, topScore: null, topIds: [] };
+
+  const scoredRows = rows.filter((r) => r.ai_score !== null);
+  if (scoredRows.length === 0) return { allDone: true, topScore: null, topIds: [] };
+
+  const topScore = Math.max(...scoredRows.map((r) => r.ai_score!));
+  const topIds = scoredRows.filter((r) => r.ai_score === topScore).map((r) => r.id);
+  return { allDone: true, topScore, topIds };
 }
 
 export default db;
