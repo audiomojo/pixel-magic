@@ -2,12 +2,12 @@ import { scanFolder, excludeOutbound } from './scanner';
 import { hashImage } from './hasher';
 import { buildGroups } from './grouper';
 import { emitProgress } from './emitter';
+import { startScorer } from './scorer';
 import {
   getRecordByPath,
   insertRecord,
   insertGroup,
   updateGroupId,
-  getAllPending,
   getUngroupedPending,
 } from './db';
 import type { AppConfig, ScanStats } from '@/types';
@@ -19,6 +19,8 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
     singletons: 0,
     errors: 0,
     groupCount: 0,
+    scored: 0,
+    scoreErrors: 0,
   };
 
   // Phase A — Hashing
@@ -86,7 +88,20 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
 
   stats.singletons = pending.length - stats.grouped;
 
-  emitProgress({ type: 'complete', phase: 'done', current: pending.length, total: pending.length, stats });
+  // Phase C — AI Scoring (if enabled)
+  if (config.aiScoringEnabled) {
+    const scoreStats = await startScorer(config);
+    stats.scored = scoreStats.scored;
+    stats.scoreErrors = scoreStats.scoreErrors;
+  }
+
+  emitProgress({
+    type: 'complete',
+    phase: 'done',
+    current: pending.length,
+    total: pending.length,
+    stats,
+  });
 
   return stats;
 }

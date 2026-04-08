@@ -70,8 +70,8 @@ export type ScanStats = {
   singletons: number;   // Images with no near-duplicates
   errors: number;
   groupCount: number;   // Number of distinct groups
-  scored?: number;      // Populated once ai-scoring is merged
-  scoreErrors?: number;
+  scored: number;
+  scoreErrors: number;
 };
 
 export type AppConfig = {
