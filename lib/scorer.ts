@@ -74,20 +74,22 @@ export function parseScoreResponse(raw: string): AiScoreDetail {
 }
 
 async function resizeForOllama(filePath: string): Promise<string> {
-  let inputBuffer: Parameters<typeof sharp>[0] = filePath;
+  const resize = (input: Parameters<typeof sharp>[0]) =>
+    sharp(input)
+      .resize({ width: 768, height: 768, fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
 
-  // sharp's libheif in Docker lacks the HEVC codec for iPhone HEICs — convert first
-  if (/\.heic$/i.test(filePath)) {
+  // Try sharp directly first; fall back to heic-convert on decode failure
+  // (covers .heic by extension AND misnamed HEIC files e.g. .HEIC.jpeg)
+  try {
+    if (/\.heic$/i.test(filePath)) throw new Error('heic-first');
+    return (await resize(filePath)).toString('base64');
+  } catch {
     const raw = await fs.readFile(filePath);
     const jpeg = await heicConvert({ buffer: raw, format: 'JPEG', quality: 0.9 });
-    inputBuffer = Buffer.from(jpeg);
+    return (await resize(Buffer.from(jpeg))).toString('base64');
   }
-
-  const buffer = await sharp(inputBuffer)
-    .resize({ width: 768, height: 768, fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 80 })
-    .toBuffer();
-  return buffer.toString('base64');
 }
 
 async function callOllama(
