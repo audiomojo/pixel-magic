@@ -8,13 +8,14 @@ export async function GET() {
     return NextResponse.json(config);
   } catch {
     // config.json doesn't exist yet (first run) — return defaults
+    // No config.json yet — return defaults. AI scoring fields come from CONFIG_DEFAULTS in lib/config.ts.
     return NextResponse.json({
       inboundFolder: '',
       outboundBase: '',
       similarityThreshold: 60,
       supportedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff', 'gif', 'bmp'],
       aiScoringEnabled: false,
-      ollamaBaseUrl: 'http://localhost:11434',
+      ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434',
       ollamaModel: 'llama3.2-vision:11b',
     } satisfies AppConfig);
   }
