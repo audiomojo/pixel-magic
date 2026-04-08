@@ -11,8 +11,11 @@ export async function GET() {
     return NextResponse.json({
       inboundFolder: '',
       outboundBase: '',
-      similarityThreshold: 90,
+      similarityThreshold: 60,
       supportedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff', 'gif', 'bmp'],
+      aiScoringEnabled: false,
+      ollamaBaseUrl: 'http://localhost:11434',
+      ollamaModel: 'llama3.2-vision:11b',
     } satisfies AppConfig);
   }
 }

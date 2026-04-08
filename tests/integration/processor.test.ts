@@ -31,6 +31,9 @@ function makeConfig(inboundFolder: string, outboundBase: string): AppConfig {
     outboundBase,
     similarityThreshold: 90,
     supportedExtensions: SUPPORTED_EXTENSIONS,
+    aiScoringEnabled: false,
+    ollamaBaseUrl: 'http://localhost:11434',
+    ollamaModel: 'llama3.2-vision:11b',
   };
 }
 

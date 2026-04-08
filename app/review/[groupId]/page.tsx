@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -37,6 +37,29 @@ function imageUrl(filePath: string): string {
   return `/api/images?path=${encodeURIComponent(filePath)}`;
 }
 
+function scoreBadge(img: ImageRecord): ReactElement | null {
+  if (img.aiScoreStatus === 'scoring') {
+    return (
+      <span className="absolute right-1 top-1 rounded-full bg-black/60 px-1 py-0.5 text-[9px] font-mono text-white/70">
+        …
+      </span>
+    );
+  }
+  if (img.aiScoreStatus !== 'scored' || img.aiScore == null) return null;
+  const score = img.aiScore;
+  const color =
+    score >= 75
+      ? 'bg-green-500 text-white'
+      : score >= 50
+        ? 'bg-yellow-500 text-black'
+        : 'bg-red-500 text-white';
+  return (
+    <span className={`absolute right-1 top-1 rounded-full px-1 py-0.5 text-[9px] font-bold ${color}`}>
+      {Math.round(score)}
+    </span>
+  );
+}
+
 export default function GroupReviewPage() {
   const params = useParams<{ groupId: string }>();
   const router = useRouter();
@@ -51,6 +74,7 @@ export default function GroupReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
+  const [scoringActive, setScoringActive] = useState(false);
 
   const rotateCCW = useCallback(() => {
     setRotation((prev) => (((prev + 270) % 360) as 0 | 90 | 180 | 270));
@@ -69,9 +93,24 @@ export default function GroupReviewPage() {
         setGroup(detail.group);
         setImages(detail.images);
         setAllGroups(groups);
-        setKeptPaths([]);
-        setFocusedIdx(0);
         setRotation(0);
+        setFocusedIdx(0);
+
+        // Auto-check the highest-scored image(s)
+        const scored = detail.images.filter((img) => img.aiScoreStatus === 'scored' && img.aiScore !== null);
+        if (scored.length > 0) {
+          const topScore = Math.max(...scored.map((img) => img.aiScore as number));
+          const topPaths = scored.filter((img) => img.aiScore === topScore).map((img) => img.filePath);
+          setKeptPaths(topPaths);
+        } else {
+          setKeptPaths([]);
+        }
+
+        // Check if scoring is still in progress for this group
+        const stillPending = detail.images.some(
+          (img) => img.aiScoreStatus === 'pending' || img.aiScoreStatus === 'scoring'
+        );
+        setScoringActive(stillPending);
       })
       .catch(() => toast.error('Failed to load group'))
       .finally(() => setLoading(false));
@@ -121,6 +160,36 @@ export default function GroupReviewPage() {
     },
     [allGroups, groupId, images, rotation, router],
   );
+
+  // Poll for score updates while scoring is in progress for this group
+  useEffect(() => {
+    if (!scoringActive) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const detail = await fetch(`/api/groups/${groupId}`).then((r) => r.json()) as { group: ImageGroup; images: ImageRecord[] };
+        const stillPending = detail.images.some(
+          (img) => img.aiScoreStatus === 'pending' || img.aiScoreStatus === 'scoring'
+        );
+        setImages(detail.images);
+
+        // Re-apply auto-select whenever new scores arrive
+        const scored = detail.images.filter((img) => img.aiScoreStatus === 'scored' && img.aiScore !== null);
+        if (scored.length > 0) {
+          const topScore = Math.max(...scored.map((img) => img.aiScore as number));
+          const topPaths = scored.filter((img) => img.aiScore === topScore).map((img) => img.filePath);
+          setKeptPaths(topPaths);
+        }
+
+        setScoringActive(stillPending);
+        if (!stillPending) clearInterval(interval);
+      } catch {
+        // ignore poll errors
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [scoringActive, groupId]);
 
   // Keyboard shortcuts: ← → navigate, Space toggle keep, Enter submit
   // focusedIdx is in deps so Space always toggles the currently focused image.
@@ -190,6 +259,12 @@ export default function GroupReviewPage() {
         <span className="mx-auto text-sm font-medium">
           Group {groupIndex >= 0 ? groupIndex + 1 : '?'} of {allGroups.length}
         </span>
+
+        {scoringActive && (
+          <span className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+            Scoring…
+          </span>
+        )}
 
         <div className="flex items-center gap-2">
           <Button
@@ -279,6 +354,38 @@ export default function GroupReviewPage() {
                 ? new Date(focusedImage.dateTaken).toLocaleDateString()
                 : new Date(focusedImage.fileMtime).toLocaleDateString()}
             </span>
+            {focusedImage.aiScore != null && focusedImage.aiScoreStatus === 'scored' && (
+              <>
+                <span className="mx-2">·</span>
+                <span
+                  title={
+                    focusedImage.aiScoreDetail
+                      ? (() => {
+                          try {
+                            const d = JSON.parse(focusedImage.aiScoreDetail) as {
+                              rationale?: string;
+                              sharpness?: number;
+                              exposure?: number;
+                              composition?: number;
+                              color?: number;
+                            };
+                            return [
+                              `Rationale: ${d.rationale ?? '—'}`,
+                              `Sharpness: ${d.sharpness ?? '—'}  Exposure: ${d.exposure ?? '—'}`,
+                              `Composition: ${d.composition ?? '—'}  Color: ${d.color ?? '—'}`,
+                            ].join('\n');
+                          } catch {
+                            return '';
+                          }
+                        })()
+                      : undefined
+                  }
+                  className="cursor-help font-medium text-purple-700 dark:text-purple-300"
+                >
+                  AI: {Math.round(focusedImage.aiScore as number)}
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -336,6 +443,7 @@ export default function GroupReviewPage() {
               {isKept && (
                 <div className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-inset ring-green-500" />
               )}
+              {scoreBadge(img)}
             </div>
           );
         })}

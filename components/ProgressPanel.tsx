@@ -141,6 +141,8 @@ export function ProgressPanel({
     singletons:   0,
     errors:       0,
     groupCount:   0,
+    scored:       0,
+    scoreErrors:  0,
   };
 
   return (

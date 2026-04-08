@@ -55,6 +55,9 @@ beforeAll(async () => {
     outboundBase,
     similarityThreshold: 90,
     supportedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff', 'tif', 'jp2'],
+    aiScoringEnabled: false,
+    ollamaBaseUrl: 'http://localhost:11434',
+    ollamaModel: 'llama3.2-vision:11b',
   };
   writeFileSync(CONFIG_PATH, JSON.stringify(testConfig, null, 2), 'utf-8');
 

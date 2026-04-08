@@ -1,5 +1,21 @@
 export type ImageStatus = 'pending' | 'kept' | 'recycled' | 'singleton_kept';
 
+export type AiScoreStatus = 'pending' | 'scoring' | 'scored' | 'error';
+
+export type AiScoreDetail = {
+  contentType: 'portrait' | 'landscape' | 'other';
+  sharpness: number;
+  exposure: number;
+  composition: number;
+  color: number;
+  eyesOpen: number | null;
+  expression: number | null;
+  faceSharpness: number | null;
+  score: number;
+  rationale: string;
+  tiebreak?: boolean;
+};
+
 export type ImageRecord = {
   id?: number;
   filePath: string;         // Absolute path in Inbound
@@ -14,6 +30,11 @@ export type ImageRecord = {
   groupId: number | null;   // null = singleton (no near-duplicates)
   status: ImageStatus;
   addedAt: string;          // ISO 8601 scan time
+  // AI scoring — optional: absent until the migration runs or scoring begins
+  aiScore?: number | null;
+  aiScoreDetail?: string | null;   // JSON string of AiScoreDetail
+  aiScoredAt?: string | null;
+  aiScoreStatus?: AiScoreStatus;
 };
 
 export type ImageGroup = {
@@ -36,7 +57,7 @@ export type GroupResolution = {
 
 export type ProgressEvent = {
   type: 'progress' | 'grouping' | 'complete' | 'error';
-  phase: 'hashing' | 'grouping' | 'done';
+  phase: 'hashing' | 'grouping' | 'scoring' | 'done';
   current: number;
   total: number;
   currentFile?: string;
@@ -49,6 +70,8 @@ export type ScanStats = {
   singletons: number;   // Images with no near-duplicates
   errors: number;
   groupCount: number;   // Number of distinct groups
+  scored: number;
+  scoreErrors: number;
 };
 
 export type AppConfig = {
@@ -56,4 +79,7 @@ export type AppConfig = {
   outboundBase: string;  // Parent of "Keeping" and "Recycle Bin" subdirs
   similarityThreshold: number;
   supportedExtensions: string[];
+  aiScoringEnabled: boolean;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
 };

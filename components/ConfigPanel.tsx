@@ -45,6 +45,9 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
         outboundBase: outbound.trim(),
         similarityThreshold: threshold,
         supportedExtensions: extensions,
+        aiScoringEnabled: config?.aiScoringEnabled ?? false,
+        ollamaBaseUrl: config?.ollamaBaseUrl ?? 'http://localhost:11434',
+        ollamaModel: config?.ollamaModel ?? 'llama3.2-vision:11b',
       };
       const res = await fetch('/api/config', {
         method: 'POST',
