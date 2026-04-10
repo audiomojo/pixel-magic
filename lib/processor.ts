@@ -1,7 +1,8 @@
-import { scanFolder, excludeOutbound } from './scanner';
+import { scanFolder } from './scanner';
 import { hashImage } from './hasher';
 import { buildGroups } from './grouper';
 import { emitProgress } from './emitter';
+import { inboundDir } from './paths';
 import { startScorer } from './scorer';
 import {
   getRecordByPath,
@@ -23,11 +24,10 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
     scoreErrors: 0,
   };
 
-  // Phase A — Hashing
-  let allFiles = await scanFolder(config.inboundFolder, config.supportedExtensions);
-  if (config.outboundBase) {
-    allFiles = excludeOutbound(allFiles, config.outboundBase, config.inboundFolder);
-  }
+  // Phase A — Scanning + Hashing
+  console.log(`[scan] starting — inbound=${inboundDir()}`);
+  const allFiles = await scanFolder(inboundDir(), config.supportedExtensions);
+  console.log(`[scan] found ${allFiles.length} files`);
 
   emitProgress({ type: 'progress', phase: 'hashing', current: 0, total: allFiles.length });
 
@@ -35,12 +35,14 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
   for (const filePath of allFiles) {
     const existing = getRecordByPath(filePath);
     if (existing && existing.status !== 'pending') {
+      console.log(`[hash] skip ${i + 1}/${allFiles.length} already-processed file=${filePath}`);
       i++;
       continue;
     }
 
     const record = await hashImage(filePath);
     if (!record) {
+      console.error(`[hash] error ${i + 1}/${allFiles.length} file=${filePath}`);
       stats.errors++;
       i++;
       emitProgress({
@@ -59,6 +61,7 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
 
     stats.totalScanned++;
     i++;
+    console.log(`[hash] ${i}/${allFiles.length} file=${filePath}`);
     emitProgress({
       type: 'progress',
       phase: 'hashing',
@@ -68,8 +71,11 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
     });
   }
 
+  console.log(`[scan] hashing done — scanned=${stats.totalScanned} errors=${stats.errors}`);
+
   // Phase B — Grouping (only ungrouped pending records)
   const pending = getUngroupedPending();
+  console.log(`[group] starting — ${pending.length} ungrouped pending images threshold=${config.similarityThreshold}%`);
   emitProgress({ type: 'grouping', phase: 'grouping', current: 0, total: pending.length });
 
   const groups = buildGroups(pending, config.similarityThreshold);
@@ -87,6 +93,7 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
   }
 
   stats.singletons = pending.length - stats.grouped;
+  console.log(`[group] done — groups=${stats.groupCount} grouped=${stats.grouped} singletons=${stats.singletons}`);
 
   // Phase C — AI Scoring (if enabled)
   if (config.aiScoringEnabled) {
@@ -95,6 +102,7 @@ export async function runScan(config: AppConfig): Promise<ScanStats> {
     stats.scoreErrors = scoreStats.scoreErrors;
   }
 
+  console.log(`[scan] complete — scanned=${stats.totalScanned} groups=${stats.groupCount} singletons=${stats.singletons} errors=${stats.errors} scored=${stats.scored}`);
   emitProgress({
     type: 'complete',
     phase: 'done',
