@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllGroups, getByGroupId, updateStatus } from '@/lib/db';
-import { readConfig } from '@/lib/config';
 import { getKeepingPath, getRecyclePath } from '@/lib/organizer';
 import fs from 'fs/promises';
 import path from 'path';
@@ -68,13 +67,11 @@ export async function POST(
       }
     }
 
-    const config = readConfig();
-
     for (const filePath of keepPaths) {
       const record = members.find((m) => m.filePath === filePath);
       if (!record) continue;
       const filename = path.basename(filePath);
-      const dest = getKeepingPath(config.outboundBase, record, filename);
+      const dest = getKeepingPath(record, filename);
       await fs.mkdir(path.dirname(dest), { recursive: true });
 
       if (rotation) {
@@ -92,7 +89,7 @@ export async function POST(
       const record = members.find((m) => m.filePath === filePath);
       if (!record) continue;
       const filename = path.basename(filePath);
-      const dest = getRecyclePath(config.outboundBase, filename);
+      const dest = getRecyclePath(filename);
       await fs.mkdir(path.dirname(dest), { recursive: true });
       await fs.rename(filePath, dest);
       if (record.id !== undefined) updateStatus(record.id, 'recycled');

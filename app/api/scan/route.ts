@@ -15,15 +15,10 @@ export async function POST() {
     return NextResponse.json({ error: 'Could not read config' }, { status: 500 });
   }
 
-  if (!config.inboundFolder || !config.outboundBase) {
-    return NextResponse.json({ error: 'Configure inbound and outbound folders before scanning' }, { status: 400 });
-  }
-
   scanState.status = 'running';
   scanState.scanStartedAt = Date.now();
   scanState.lastScanAt = new Date().toISOString();
 
-  // Fire and forget — progress is streamed via SSE
   runScan(config)
     .then(() => {
       scanState.status = 'complete';

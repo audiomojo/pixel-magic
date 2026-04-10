@@ -10,8 +10,6 @@ export async function GET() {
   } catch {
     // No config.json yet (first run) — return defaults
     return NextResponse.json({
-      inboundFolder: '',
-      outboundBase: '',
       similarityThreshold: 60,
       supportedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff', 'gif', 'bmp'],
       aiScoringEnabled: false,

@@ -19,9 +19,9 @@ import type { ImageRecord } from '../types';
 async function main() {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pixel-magic-test-'));
   const testImage = path.join(tmpDir, 'test.jpg');
-  const outboundBase = path.join(tmpDir, 'outbound');
-  await fs.mkdir(path.join(outboundBase, 'Keeping'), { recursive: true });
-  await fs.mkdir(path.join(outboundBase, 'Recycle Bin'), { recursive: true });
+  process.env.DATA_DIR = tmpDir;
+  await fs.mkdir(path.join(tmpDir, 'Keeping'), { recursive: true });
+  await fs.mkdir(path.join(tmpDir, 'Recycle Bin'), { recursive: true });
 
   // Create a simple 100x100 red JPEG
   await sharp({
@@ -78,7 +78,7 @@ async function main() {
     dateTaken: '2024-06-15T10:00:00.000Z',
     fileMtime: '2020-01-01T00:00:00.000Z',
   };
-  const keepPath = getKeepingPath(outboundBase, r2024, 'photo.jpg');
+  const keepPath = getKeepingPath(r2024, 'photo.jpg');
   console.log(`  path: ${keepPath}`);
   if (!keepPath.includes(path.join('Keeping', '2024', '06'))) {
     throw new Error(`Expected Keeping/2024/06 in path, got: ${keepPath}`);
@@ -86,7 +86,7 @@ async function main() {
   console.log('  PASS');
 
   console.log('\n=== getRecyclePath ===');
-  const recyclePath = getRecyclePath(outboundBase, 'photo.jpg');
+  const recyclePath = getRecyclePath('photo.jpg');
   console.log(`  path: ${recyclePath}`);
   if (!recyclePath.includes('Recycle Bin')) throw new Error('Expected Recycle Bin in path');
   console.log('  PASS');
