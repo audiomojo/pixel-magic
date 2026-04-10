@@ -4,7 +4,8 @@ services:
     ports:
       - "3010:3000"
     volumes:
-      - /Users/rich/Data/pixel-magic:/data
+      - /Users/rich/data/docker/pixel-magic:/data
     environment:
+      - DATA_DIR=/data
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
     restart: unless-stopped
