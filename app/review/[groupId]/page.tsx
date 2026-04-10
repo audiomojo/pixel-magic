@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { PanelLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -55,6 +56,86 @@ function scoreBadge(img: ImageRecord): ReactElement | null {
 }
 
 
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[auto_1fr] gap-x-2 py-0.5">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="min-w-0 break-all font-mono">{value}</span>
+    </div>
+  );
+}
+
+function ImageDetails({ image }: { image: ImageRecord }) {
+  const scoreDetail = image.aiScoreDetail
+    ? (() => { try { return JSON.parse(image.aiScoreDetail) as Record<string, unknown>; } catch { return null; } })()
+    : null;
+
+  return (
+    <div className="space-y-3">
+      <section>
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">File</p>
+        <DetailRow label="Name" value={basename(image.filePath)} />
+        <DetailRow label="Path" value={image.filePath} />
+        <DetailRow label="ID" value={image.id ?? '—'} />
+        <DetailRow label="Status" value={image.status} />
+        <DetailRow label="Added" value={new Date(image.addedAt).toLocaleString()} />
+      </section>
+
+      <section>
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Image</p>
+        <DetailRow label="Width" value={`${image.width} px`} />
+        <DetailRow label="Height" value={`${image.height} px`} />
+        <DetailRow label="DPI X" value={image.dpiX} />
+        <DetailRow label="DPI Y" value={image.dpiY} />
+        <DetailRow label="Size" value={formatBytes(image.fileSize)} />
+        <DetailRow label="Date Taken" value={image.dateTaken ? new Date(image.dateTaken).toLocaleString() : '—'} />
+        <DetailRow label="Modified" value={new Date(image.fileMtime).toLocaleString()} />
+      </section>
+
+      <section>
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Hash</p>
+        <DetailRow label="Hash" value={image.hash} />
+        <DetailRow label="Group" value={image.groupId ?? 'singleton'} />
+      </section>
+
+      {scoreDetail && (
+        <section>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">AI Score</p>
+          <DetailRow label="Score" value={image.aiScore != null ? Math.round(image.aiScore as number) : '—'} />
+          <DetailRow label="Type" value={String(scoreDetail.contentType ?? '—')} />
+          <DetailRow label="Sharpness" value={String(scoreDetail.sharpness ?? '—')} />
+          <DetailRow label="Exposure" value={String(scoreDetail.exposure ?? '—')} />
+          <DetailRow label="Composition" value={String(scoreDetail.composition ?? '—')} />
+          <DetailRow label="Color" value={String(scoreDetail.color ?? '—')} />
+          {scoreDetail.contentType === 'portrait' && (
+            <>
+              <DetailRow label="Eyes Open" value={String(scoreDetail.eyesOpen ?? '—')} />
+              <DetailRow label="Expression" value={String(scoreDetail.expression ?? '—')} />
+              <DetailRow label="Face Sharp" value={String(scoreDetail.faceSharpness ?? '—')} />
+            </>
+          )}
+          {!!scoreDetail.rationale && (
+            <div className="mt-1 break-words text-muted-foreground" style={{ fontFamily: 'inherit' }}>
+              &ldquo;{String(scoreDetail.rationale)}&rdquo;
+            </div>
+          )}
+          {!!scoreDetail.tiebreak && (
+            <div className="mt-0.5 text-[10px] italic text-muted-foreground">tiebreak applied</div>
+          )}
+          <DetailRow label="Scored At" value={image.aiScoredAt ? new Date(image.aiScoredAt).toLocaleString() : '—'} />
+        </section>
+      )}
+
+      {!scoreDetail && image.aiScoreStatus && (
+        <section>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">AI Score</p>
+          <DetailRow label="Status" value={image.aiScoreStatus} />
+        </section>
+      )}
+    </div>
+  );
+}
+
 export default function GroupReviewPage() {
   const params = useParams<{ groupId: string }>();
   const router = useRouter();
@@ -68,6 +149,7 @@ export default function GroupReviewPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
   const [scoringActive, setScoringActive] = useState(false);
 
@@ -307,48 +389,71 @@ export default function GroupReviewPage() {
 
       {/* ── Large preview ── */}
       <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-        <div className="flex flex-1 min-h-0 items-center justify-center overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/30">
-          {focusedImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={focusedImage.filePath}
-              src={imageUrl(focusedImage.filePath)}
-              alt={basename(focusedImage.filePath)}
-              className="max-h-full max-w-full object-contain"
-              style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
-            />
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Details sidebar */}
+          {showDetails && focusedImage && (
+            <div className="w-64 flex-none overflow-y-auto border-r bg-background p-3 text-xs">
+              <ImageDetails image={focusedImage} />
+            </div>
           )}
+
+          {/* Image canvas */}
+          <div className="flex flex-1 min-h-0 items-center justify-center overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/30">
+            {focusedImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={focusedImage.filePath}
+                src={imageUrl(focusedImage.filePath)}
+                alt={basename(focusedImage.filePath)}
+                className="max-h-full max-w-full object-contain"
+                style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
+              />
+            )}
+          </div>
         </div>
 
         {/* Metadata row */}
         {focusedImage && (
-          <div className="flex-none border-t bg-background px-4 py-1.5 text-xs text-muted-foreground">
-            <span className="font-mono">{basename(focusedImage.filePath)}</span>
-            <span className="mx-2">·</span>
-            <span>
-              {focusedImage.width} × {focusedImage.height}
+          <div className="flex flex-none items-center border-t bg-background px-4 py-1.5 text-xs text-muted-foreground">
+            <span className="min-w-0 flex-1 truncate">
+              <span className="font-mono">{basename(focusedImage.filePath)}</span>
+              <span className="mx-2">·</span>
+              <span>{focusedImage.width} × {focusedImage.height}</span>
+              <span className="mx-2">·</span>
+              <span>{formatBytes(focusedImage.fileSize)}</span>
+              <span className="mx-2">·</span>
+              <span>{focusedImage.dpiX} DPI</span>
+              <span className="mx-2">·</span>
+              <span>
+                {focusedImage.dateTaken
+                  ? new Date(focusedImage.dateTaken).toLocaleDateString()
+                  : new Date(focusedImage.fileMtime).toLocaleDateString()}
+              </span>
+              {focusedImage.aiScore != null && focusedImage.aiScoreStatus === 'scored' && (
+                <>
+                  <span className="mx-2">·</span>
+                  <span
+                    title={formatScoreTooltip(focusedImage.aiScoreDetail)}
+                    className="cursor-help font-medium text-purple-700 dark:text-purple-300"
+                  >
+                    AI: {Math.round(focusedImage.aiScore as number)}
+                  </span>
+                </>
+              )}
+              <span className="mx-2">·</span>
+              <span className="font-mono">{focusedImage.hash.slice(0, 12)}</span>
             </span>
-            <span className="mx-2">·</span>
-            <span>{formatBytes(focusedImage.fileSize)}</span>
-            <span className="mx-2">·</span>
-            <span>{focusedImage.dpiX} DPI</span>
-            <span className="mx-2">·</span>
-            <span>
-              {focusedImage.dateTaken
-                ? new Date(focusedImage.dateTaken).toLocaleDateString()
-                : new Date(focusedImage.fileMtime).toLocaleDateString()}
-            </span>
-            {focusedImage.aiScore != null && focusedImage.aiScoreStatus === 'scored' && (
-              <>
-                <span className="mx-2">·</span>
-                <span
-                  title={formatScoreTooltip(focusedImage.aiScoreDetail)}
-                  className="cursor-help font-medium text-purple-700 dark:text-purple-300"
-                >
-                  AI: {Math.round(focusedImage.aiScore as number)}
-                </span>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowDetails((v) => !v)}
+              className={cn(
+                'ml-3 flex-none rounded p-0.5 transition-colors hover:bg-muted',
+                showDetails && 'bg-muted text-foreground',
+              )}
+              title={showDetails ? 'Hide full details' : 'Show full details'}
+            >
+              <PanelLeft className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
       </div>
