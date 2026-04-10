@@ -35,8 +35,8 @@ function rotateBadge(rotation: number): string {
   return `–${ccw}°`;
 }
 
-function imageUrl(filePath: string): string {
-  return `/api/images?path=${encodeURIComponent(filePath)}`;
+function imageUrl(filePath: string, thumb = true): string {
+  return `/api/images?path=${encodeURIComponent(filePath)}${thumb ? '&thumb=1' : ''}`;
 }
 
 function scoreBadge(img: ImageRecord): ReactElement | null {

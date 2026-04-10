@@ -76,7 +76,7 @@ export default function ReviewListPage() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`/api/images?path=${encodeURIComponent(group.representativePath)}`}
+              src={`/api/images?path=${encodeURIComponent(group.representativePath)}&thumb=1`}
               alt={`Group ${idx + 1} representative`}
               className="h-16 w-16 flex-none rounded-lg object-cover"
             />

@@ -17,3 +17,7 @@ export function keepingDir(): string {
 export function recycleBinDir(): string {
   return path.join(dataDir(), 'Recycle Bin');
 }
+
+export function thumbsDir(): string {
+  return path.join(dataDir(), 'thumbs');
+}

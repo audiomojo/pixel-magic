@@ -8,6 +8,24 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import type { ImageRecord } from '@/types';
 
+const THUMB_SIZE = 1200;
+const THUMB_QUALITY = 80;
+
+async function saveThumbnail(hash: string, sharpInput: Buffer | string): Promise<void> {
+  if (!process.env.DATA_DIR) return; // no-op outside a DATA_DIR context (e.g. unit tests)
+  const { thumbsDir } = await import('./paths');
+  const dir = thumbsDir();
+  const thumbPath = path.join(dir, `${hash}.jpg`);
+  // Skip if already written — same hash = same image content
+  try { await fs.access(thumbPath); return; } catch { /* not yet cached */ }
+  await fs.mkdir(dir, { recursive: true });
+  const buf = await sharp(sharpInput, { failOn: 'none' })
+    .resize(THUMB_SIZE, THUMB_SIZE, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: THUMB_QUALITY })
+    .toBuffer();
+  await fs.writeFile(thumbPath, buf);
+}
+
 function hashFilePath(filePath: string): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     imageHashCb(filePath, 16, 'hex', (err: Error | null, data: string) => {
@@ -72,6 +90,9 @@ export async function hashImage(filePath: string): Promise<ImageRecord | null> {
       sharp(sharpInput, { failOn: 'none' }).metadata(),
       computeHash(filePath),
     ]);
+
+    // Generate thumbnail in background — best-effort, never fails the scan
+    saveThumbnail(hash, sharpInput).catch(() => {});
 
     const dateTaken =
       (exifData?.DateTimeOriginal as Date | undefined)?.toISOString() ??
