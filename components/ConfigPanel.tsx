@@ -15,8 +15,6 @@ interface ConfigPanelProps {
 }
 
 export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
-  const [inbound, setInbound] = useState('');
-  const [outbound, setOutbound] = useState('');
   const [threshold, setThreshold] = useState(90);
   const [extensions, setExtensions] = useState<string[]>(['jpg', 'jpeg', 'png', 'heic', 'webp']);
   const [saving, setSaving] = useState(false);
@@ -24,11 +22,8 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState('http://host.docker.internal:11434');
   const [ollamaModel, setOllamaModel] = useState('qwen2.5vl:7b');
 
-  // Sync local state when config loads asynchronously
   useEffect(() => {
     if (config) {
-      setInbound(config.inboundFolder);
-      setOutbound(config.outboundBase);
       setThreshold(config.similarityThreshold);
       setExtensions(config.supportedExtensions);
       setAiScoringEnabled(config.aiScoringEnabled ?? false);
@@ -47,8 +42,6 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
     setSaving(true);
     try {
       const body: AppConfig = {
-        inboundFolder: inbound.trim(),
-        outboundBase: outbound.trim(),
         similarityThreshold: threshold,
         supportedExtensions: extensions,
         aiScoringEnabled,
@@ -74,11 +67,10 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
     }
   }
 
-  // Collapsed summary while a scan is running
   if (scanning) {
     return (
       <div className="rounded-xl border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-        {inbound || '—'} → {outbound || '—'} · {threshold}% threshold
+        {threshold}% similarity threshold
       </div>
     );
   }
@@ -86,29 +78,6 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
   return (
     <div className="rounded-xl border bg-card p-4 text-sm">
       <p className="mb-3 font-medium">Configuration</p>
-
-      <div className="mb-3 space-y-2">
-        <div>
-          <label htmlFor="inbound-folder" className="mb-1 block text-xs text-muted-foreground">Inbound folder</label>
-          <input
-            id="inbound-folder"
-            value={inbound}
-            onChange={(e) => setInbound(e.target.value)}
-            placeholder="/absolute/path/to/inbound"
-            className="w-full rounded-md border bg-background px-3 py-1.5 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <div>
-          <label htmlFor="outbound-folder" className="mb-1 block text-xs text-muted-foreground">Output base folder</label>
-          <input
-            id="outbound-folder"
-            value={outbound}
-            onChange={(e) => setOutbound(e.target.value)}
-            placeholder="/absolute/path/to/output"
-            className="w-full rounded-md border bg-background px-3 py-1.5 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-      </div>
 
       <div className="mb-3">
         <label htmlFor="similarity-threshold" className="mb-1 block text-xs text-muted-foreground">
