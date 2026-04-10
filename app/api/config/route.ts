@@ -10,7 +10,7 @@ export async function GET() {
   } catch {
     // No config.json yet (first run) — return defaults
     return NextResponse.json({
-      similarityThreshold: 60,
+      similarityThreshold: 75,
       supportedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff', 'gif', 'bmp'],
       aiScoringEnabled: false,
       ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434',

@@ -35,10 +35,10 @@ describe('GET /api/config — first run (no config.json)', () => {
     expect(res.status).toBe(200);
   });
 
-  it('default config has similarityThreshold of 60', async () => {
+  it('default config has similarityThreshold of 75', async () => {
     const res = await getConfig();
     const body = (await res.json()) as Record<string, unknown>;
-    expect(body.similarityThreshold).toBe(60);
+    expect(body.similarityThreshold).toBe(75);
   });
 
   it('default config has a non-empty supportedExtensions array', async () => {

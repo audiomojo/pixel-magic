@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import type { AppConfig } from '@/types';
 
-const CONFIG_PATH = path.join(process.env.DATA_DIR || process.cwd(), 'config.json');
+function configPath(): string {
+  return path.join(process.env.DATA_DIR || process.cwd(), 'config.json');
+}
 
 const CONFIG_DEFAULTS: Pick<AppConfig, 'aiScoringEnabled' | 'ollamaBaseUrl' | 'ollamaModel'> = {
   aiScoringEnabled: false,
@@ -11,10 +13,10 @@ const CONFIG_DEFAULTS: Pick<AppConfig, 'aiScoringEnabled' | 'ollamaBaseUrl' | 'o
 };
 
 export function readConfig(): AppConfig {
-  const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
+  const raw = fs.readFileSync(configPath(), 'utf-8');
   return { ...CONFIG_DEFAULTS, ...(JSON.parse(raw) as AppConfig) };
 }
 
 export function writeConfig(config: AppConfig): void {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+  fs.writeFileSync(configPath(), JSON.stringify(config, null, 2), 'utf-8');
 }
