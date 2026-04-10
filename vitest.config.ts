@@ -13,6 +13,7 @@ export default defineConfig({
     sequence: {
       concurrent: false,
     },
+    exclude: ['.worktrees/**', 'node_modules/**'],
   },
   resolve: {
     alias: {

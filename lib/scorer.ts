@@ -25,7 +25,7 @@ First, classify the primary content:
 - "landscape": outdoor or indoor scene without prominent people
 - "other": objects, abstract, pets, or unclear
 
-Score each criterion 0 to its maximum:
+Score each criterion 0 to its maximum based on what you actually observe in this specific photo:
 
 ALL PHOTOS:
 - sharpness: 0-25 (is the primary subject in crisp focus?)
@@ -42,8 +42,10 @@ Score calculation:
 - Portrait: score = sharpness + exposure + composition + color + eyesOpen + expression + faceSharpness
 - Non-portrait: score = round((sharpness + exposure + composition + color) / 70 * 100)
 
-Return ONLY valid JSON, no other text:
-{"contentType":"portrait","sharpness":22,"exposure":18,"composition":12,"color":8,"eyesOpen":9,"expression":8,"faceSharpness":9,"score":86,"rationale":"Well-exposed candid portrait with both eyes open."}`;
+Evaluate the actual photo carefully. Scores must reflect what you observe — a blurry photo must score low on sharpness, a dark photo must score low on exposure.
+
+Return ONLY valid JSON with your actual observations, no other text:
+{"contentType":"<portrait|landscape|other>","sharpness":<integer 0-25>,"exposure":<integer 0-20>,"composition":<integer 0-15>,"color":<integer 0-10>,"eyesOpen":<integer 0-10 or null>,"expression":<integer 0-10 or null>,"faceSharpness":<integer 0-10 or null>,"score":<integer 0-100>,"rationale":"<one sentence describing what you actually see>"}`;
 
 export const TIEBREAK_PROMPT = `You are an expert photo curator. Two photos scored equally and you must differentiate them.
 
@@ -57,8 +59,8 @@ Examine subtle differences:
 
 You MUST give different scores to the two photos. Even a 1-point difference is fine.
 
-Return ONLY valid JSON, no other text:
-{"photo1Score":87,"photo2Score":84,"rationale":"Photo 1 has sharper eyes and a more genuine smile."}`;
+Return ONLY valid JSON with scores reflecting what you actually observe, no other text:
+{"photo1Score":<integer 0-100>,"photo2Score":<integer 0-100>,"rationale":"<one sentence on the key differentiator>"}`;
 
 export function normalizeScore(rawSum: number, isPortrait: boolean): number {
   if (isPortrait) return Math.min(100, Math.max(0, rawSum));

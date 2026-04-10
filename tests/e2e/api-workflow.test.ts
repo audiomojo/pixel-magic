@@ -13,14 +13,14 @@
  *   6. POST /api/singletons → copies ungrouped images to Keeping
  *   7. GET /api/stats → reflects resolved state
  *
- * Config is written/restored around the test suite.
+ * Config is written to DATA_DIR/config.json for the duration of the suite.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import path from 'path';
 import os from 'os';
 import fs from 'fs/promises';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { runScan } from '@/lib/processor';
 import { clearAll, getAllGroups, getByGroupId } from '@/lib/db';
 import { GET as getGroups } from '@/app/api/groups/route';
@@ -30,50 +30,42 @@ import { POST as postSingletons } from '@/app/api/singletons/route';
 import { NextRequest } from 'next/server';
 
 const SIMILAR_DIR = path.resolve(__dirname, '../../test-photos/Similar');
-const CONFIG_PATH = path.resolve(__dirname, '../../config.json');
 
-let outboundBase: string;
-let originalConfig: string | null = null;
+let dataDir: string;
+let origDataDir: string | undefined;
 
 function makeRequest(url: string, options: RequestInit = {}): NextRequest {
   return new NextRequest(url, options as ConstructorParameters<typeof NextRequest>[1]);
 }
 
 beforeAll(async () => {
-  outboundBase = await fs.mkdtemp(path.join(os.tmpdir(), 'pixel-magic-e2e-'));
-  await fs.mkdir(path.join(outboundBase, 'Keeping'), { recursive: true });
-  await fs.mkdir(path.join(outboundBase, 'Recycle Bin'), { recursive: true });
+  origDataDir = process.env.DATA_DIR;
+  dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pixel-magic-e2e-'));
+  await fs.cp(SIMILAR_DIR, path.join(dataDir, 'Inbound'), { recursive: true });
+  await fs.mkdir(path.join(dataDir, 'Keeping'), { recursive: true });
+  await fs.mkdir(path.join(dataDir, 'Recycle Bin'), { recursive: true });
+  process.env.DATA_DIR = dataDir;
 
-  // Back up existing config
-  if (existsSync(CONFIG_PATH)) {
-    originalConfig = readFileSync(CONFIG_PATH, 'utf-8');
-  }
-
-  // Write test config
   const testConfig = {
-    inboundFolder: SIMILAR_DIR,
-    outboundBase,
     similarityThreshold: 90,
     supportedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff', 'tif', 'jp2'],
     aiScoringEnabled: false,
     ollamaBaseUrl: 'http://localhost:11434',
     ollamaModel: 'llama3.2-vision:11b',
   };
-  writeFileSync(CONFIG_PATH, JSON.stringify(testConfig, null, 2), 'utf-8');
+  writeFileSync(path.join(dataDir, 'config.json'), JSON.stringify(testConfig, null, 2), 'utf-8');
 
-  // Populate DB with scan results
   clearAll();
   const scanStats = await runScan(testConfig);
   console.log(`\n  E2E setup: ${scanStats.totalScanned} scanned, ${scanStats.groupCount} groups, ${scanStats.singletons} singletons`);
-  console.log(`  Outbound: ${outboundBase}`);
+  console.log(`  Data dir: ${dataDir}`);
 }, 120000);
 
 afterAll(async () => {
-  if (originalConfig !== null) {
-    writeFileSync(CONFIG_PATH, originalConfig, 'utf-8');
-  }
   clearAll();
-  await fs.rm(outboundBase, { recursive: true, force: true });
+  await fs.rm(dataDir, { recursive: true, force: true });
+  if (origDataDir === undefined) delete process.env.DATA_DIR;
+  else process.env.DATA_DIR = origDataDir;
 });
 
 describe('GET /api/groups', () => {
@@ -166,8 +158,8 @@ describe('POST /api/groups/:id — group resolution', () => {
     expect(body.ok).toBe(true);
   });
 
-  it('kept image is in Outbound-Keeping/YYYY/MM/', async () => {
-    const keepingDir = path.join(outboundBase, 'Keeping');
+  it('kept image is in Keeping/YYYY/MM/', async () => {
+    const keepingDir = path.join(dataDir, 'Keeping');
     const files = await walkDir(keepingDir);
     expect(files.length).toBeGreaterThanOrEqual(1);
 
@@ -184,8 +176,8 @@ describe('POST /api/groups/:id — group resolution', () => {
     }
   });
 
-  it('recycled images are in Outbound-Recycle Bin/', async () => {
-    const recycleDir = path.join(outboundBase, 'Recycle Bin');
+  it('recycled images are in Recycle Bin/', async () => {
+    const recycleDir = path.join(dataDir, 'Recycle Bin');
     const files = await walkDir(recycleDir);
     expect(files.length).toBeGreaterThanOrEqual(1);
   });
@@ -269,7 +261,7 @@ describe('POST /api/groups/:id — group resolution', () => {
     expect(res.status).toBe(200);
 
     // The kept file should have been converted to .jpg
-    const keepingDir = path.join(outboundBase, 'Keeping');
+    const keepingDir = path.join(dataDir, 'Keeping');
     const files = await walkDir(keepingDir);
     const expectedName = path.basename(keptMember.filePath).replace(/\.[^.]+$/, '.jpg');
     const match = files.find((f) => f.endsWith(path.sep + expectedName));
