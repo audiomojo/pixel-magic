@@ -75,8 +75,6 @@ export type ScanStats = {
 };
 
 export type AppConfig = {
-  inboundFolder: string;
-  outboundBase: string;  // Parent of "Keeping" and "Recycle Bin" subdirs
   similarityThreshold: number;
   supportedExtensions: string[];
   aiScoringEnabled: boolean;

@@ -16,11 +16,5 @@ export function readConfig(): AppConfig {
 }
 
 export function writeConfig(config: AppConfig): void {
-  if (config.inboundFolder && !fs.existsSync(config.inboundFolder)) {
-    throw new Error(`Inbound folder does not exist: ${config.inboundFolder}`);
-  }
-  if (config.outboundBase && !fs.existsSync(config.outboundBase)) {
-    throw new Error(`Output base folder does not exist: ${config.outboundBase}`);
-  }
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
 }
