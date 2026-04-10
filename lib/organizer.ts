@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import type { ImageRecord } from '@/types';
+import { keepingDir, recycleBinDir } from '@/lib/paths';
 
 function resolveDate(record: ImageRecord): Date {
   const src = record.dateTaken ?? record.fileMtime;
@@ -22,19 +23,15 @@ function uniquePath(dest: string): string {
   return `${base}_${counter}${ext}`;
 }
 
-export function getKeepingPath(
-  outboundBase: string,
-  record: ImageRecord,
-  filename: string
-): string {
+export function getKeepingPath(record: ImageRecord, filename: string): string {
   const date = resolveDate(record);
   const yyyy = String(date.getFullYear());
   const mm = padTwo(date.getMonth() + 1);
-  const dest = path.join(outboundBase, 'Keeping', yyyy, mm, filename);
+  const dest = path.join(keepingDir(), yyyy, mm, filename);
   return uniquePath(dest);
 }
 
-export function getRecyclePath(outboundBase: string, filename: string): string {
-  const dest = path.join(outboundBase, 'Recycle Bin', filename);
+export function getRecyclePath(filename: string): string {
+  const dest = path.join(recycleBinDir(), filename);
   return uniquePath(dest);
 }
