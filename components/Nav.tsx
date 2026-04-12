@@ -23,10 +23,10 @@ export function Nav() {
   ];
 
   return (
-    <nav className="sticky top-0 z-10 border-b bg-background">
-      <div className="mx-auto flex h-11 max-w-2xl items-center gap-6 px-4">
-        <span className="text-sm font-semibold">✨ Pixel Magic</span>
-        <div className="flex items-center gap-5">
+    <nav className="sticky top-0 z-10 bg-[#1a2b4a]">
+      <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
+        <span className="text-sm font-bold text-white">Pixel Magic</span>
+        <div className="flex items-center gap-1">
           {links.map(({ href, label, badge }) => {
             const active = pathname === href;
             return (
@@ -34,15 +34,15 @@ export function Nav() {
                 key={href}
                 href={href}
                 className={cn(
-                  'flex items-center gap-1.5 text-sm transition-colors',
+                  'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors',
                   active
-                    ? 'border-b-2 border-primary pb-0.5 font-semibold text-primary'
-                    : 'text-muted-foreground hover:text-foreground',
+                    ? 'bg-white/[0.18] font-semibold text-white'
+                    : 'font-medium text-white/70 hover:bg-white/10 hover:text-white',
                 )}
               >
                 {label}
                 {badge != null && (
-                  <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary-foreground">
+                  <span className="rounded-full bg-[#4e79a7] px-1.5 py-0.5 text-[10px] font-medium leading-none text-white">
                     {badge}
                   </span>
                 )}
