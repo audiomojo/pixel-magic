@@ -69,15 +69,15 @@ export function ConfigPanel({ config, scanning, onSaved }: ConfigPanelProps) {
 
   if (scanning) {
     return (
-      <div className="rounded-xl border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+      <div className="rounded-xl bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
         {threshold}% similarity threshold
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border bg-card p-4 text-sm">
-      <p className="mb-3 font-medium">Configuration</p>
+    <div className="rounded-xl bg-card p-4 text-sm shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#999]">Configuration</p>
 
       <div className="mb-3">
         <label htmlFor="similarity-threshold" className="mb-1 block text-xs text-muted-foreground">
