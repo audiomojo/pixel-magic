@@ -74,8 +74,8 @@ export function ProgressPanel({
     const summary = [groupLabel, singletonLabel].filter(Boolean).join(' · ');
 
     return (
-      <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 dark:border-indigo-800 dark:bg-indigo-950">
-        <p className="mb-2 text-sm font-medium text-indigo-800 dark:text-indigo-300">{summary}</p>
+      <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+        <p className="mb-2 text-sm font-medium text-indigo-800">{summary}</p>
         <div className="flex gap-2">
           <Button size="sm" onClick={onGoToReview}>
             Go to Review →
@@ -93,7 +93,7 @@ export function ProgressPanel({
   // --- Error state ---
   if (status === 'error') {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         Scan failed. Check the server console for details.
       </div>
     );
@@ -102,15 +102,15 @@ export function ProgressPanel({
   // --- Complete state ---
   if (status === 'complete' && finalStats) {
     return (
-      <div className="rounded-xl border bg-card p-4">
-        <p className="mb-3 text-sm font-medium">Scan complete</p>
+      <div className="rounded-xl bg-card p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#999]">Scan complete</p>
         <div className={cn('mb-4 grid gap-2', (finalStats.scored ?? 0) > 0 ? 'grid-cols-5' : 'grid-cols-4')}>
           <StatTile value={finalStats.totalScanned} label="Scanned"    color="text-primary" />
-          <StatTile value={finalStats.groupCount}   label="Groups"     color="text-green-600 dark:text-green-400" />
-          <StatTile value={finalStats.singletons}   label="Singletons" color="text-orange-600 dark:text-orange-400" />
-          <StatTile value={finalStats.errors}       label="Errors"     color="text-red-600 dark:text-red-400" />
+          <StatTile value={finalStats.groupCount}   label="Groups"     color="text-green-600" />
+          <StatTile value={finalStats.singletons}   label="Singletons" color="text-orange-600" />
+          <StatTile value={finalStats.errors}       label="Errors"     color="text-red-600" />
           {(finalStats.scored ?? 0) > 0 && (
-            <StatTile value={finalStats.scored ?? 0} label="Scored" color="text-purple-600 dark:text-purple-400" />
+            <StatTile value={finalStats.scored ?? 0} label="Scored" color="text-purple-600" />
           )}
         </div>
         <div className="flex gap-2">
@@ -150,8 +150,8 @@ export function ProgressPanel({
   };
 
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <p className="mb-3 text-sm font-medium">Progress</p>
+    <div className="rounded-xl bg-card p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#999]">Progress</p>
 
       {/* Hashing phase */}
       <div className={cn('mb-3', (isGrouping || isScoring) && 'opacity-50')}>
@@ -159,8 +159,8 @@ export function ProgressPanel({
           <span className="text-xs font-semibold">Hashing</span>
           <span className="text-xs text-muted-foreground">
             {isGrouping
-              ? `${progressEvent.total} / ${progressEvent.total}`
-              : `${progressEvent.current} / ${progressEvent.total}`}
+              ? `${progressEvent.total} / ${progressEvent.total} (100%)`
+              : `${progressEvent.current} / ${progressEvent.total}${progressEvent.total > 0 ? ` (${Math.round((progressEvent.current / progressEvent.total) * 100)}%)` : ''}`}
           </span>
         </div>
         <ProgressBar pct={isGrouping ? 100 : hashPct} />
@@ -187,7 +187,7 @@ export function ProgressPanel({
             <span className="text-xs font-semibold">AI Scoring</span>
             <span className="text-xs text-muted-foreground">
               {isScoring
-                ? `${progressEvent!.current} / ${progressEvent!.total}`
+                ? `${progressEvent!.current} / ${progressEvent!.total}${progressEvent!.total > 0 ? ` (${Math.round((progressEvent!.current / progressEvent!.total) * 100)}%)` : ''}`
                 : `${finalStats?.scored ?? 0} scored`}
             </span>
           </div>
@@ -211,9 +211,9 @@ export function ProgressPanel({
       {/* Live counters */}
       <div className="grid grid-cols-4 gap-2">
         <StatTile value={counters.totalScanned} label="Scanned"    color="text-primary" />
-        <StatTile value={counters.groupCount}   label="Groups"     color="text-green-600 dark:text-green-400" />
-        <StatTile value={counters.singletons}   label="Singletons" color="text-orange-600 dark:text-orange-400" />
-        <StatTile value={counters.errors}       label="Errors"     color="text-red-600 dark:text-red-400" />
+        <StatTile value={counters.groupCount}   label="Groups"     color="text-green-600" />
+        <StatTile value={counters.singletons}   label="Singletons" color="text-orange-600" />
+        <StatTile value={counters.errors}       label="Errors"     color="text-red-600" />
       </div>
     </div>
   );
