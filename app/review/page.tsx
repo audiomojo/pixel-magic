@@ -72,7 +72,7 @@ export default function ReviewListPage() {
         {groups.map((group, idx) => (
           <div
             key={group.id}
-            className="flex items-center gap-3 rounded-xl border bg-card p-3"
+            className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -81,8 +81,8 @@ export default function ReviewListPage() {
               className="h-16 w-16 flex-none rounded-lg object-cover"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">Group {idx + 1}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm font-semibold text-[#1a2b4a]">Group {idx + 1}</p>
+              <p className="text-[11px] uppercase tracking-[0.05em] text-[#999]">
                 {group.imageCount} image{group.imageCount !== 1 ? 's' : ''}
               </p>
             </div>
