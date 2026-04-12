@@ -12,10 +12,10 @@ interface ScanControlProps {
 }
 
 const STATUS_CONFIG: Record<ScanStatus, { label: string; className: string }> = {
-  idle:     { label: '● Idle',       className: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800' },
-  running:  { label: '⟳ Scanning',  className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800' },
-  complete: { label: '✓ Complete',   className: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800' },
-  error:    { label: '✕ Error',      className: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800' },
+  idle:     { label: '● Idle',       className: 'bg-green-50 text-green-700 border-green-200' },
+  running:  { label: '⟳ Scanning',  className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  complete: { label: '✓ Complete',   className: 'bg-green-50 text-green-700 border-green-200' },
+  error:    { label: '✕ Error',      className: 'bg-red-50 text-red-700 border-red-200' },
 };
 
 function formatDuration(ms: number): string {
@@ -36,7 +36,7 @@ export function ScanControl({ status, lastScanAt, scanDurationMs, onStartScan }:
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3">
+    <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
       <Button size="sm" onClick={onStartScan} disabled={status === 'running'}>
         ▶ Start Scan
       </Button>
