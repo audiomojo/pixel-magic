@@ -8,6 +8,7 @@ The plan assumes the Mac Studio uses the same username (`rich`) and the same pat
 
 - [x] Source pushed to `https://github.com/audiomojo/pixel-magic.git` (`main`, `feature/ai-photo-scoring`, `feature/stock-tracker-theme`)
 - [x] Photo folders and runtime files added to `.gitignore`
+- [x] MacBook worktrees removed (`.worktrees/` is empty)
 - [ ] Non-git files copied to the Mac Studio
 - [ ] Dependencies installed on the Mac Studio
 - [ ] Clone, install, and verification on the Mac Studio
@@ -111,4 +112,4 @@ Keep the MacBook copy untouched until steps 5–7 pass.
 
 - **Cached file paths**: not yet checked whether `cache.db` stores absolute image paths. If it does and paths change, the cache needs a rescan.
 - **Feature branches**: `feature/ai-photo-scoring` and `feature/stock-tracker-theme` were pushed as-is. Their work appears to be on `main` already as re-created commits (matched by commit title and patch identity, not line by line). Delete them once that is confirmed.
-- **Worktrees**: they do not transfer. On the MacBook, `git worktree prune` clears the stale `ai-scoring` entry, which points at a `Source Code` path (with a space) that no longer exists. Recreate worktrees on the Studio from the branches if needed.
+- **Worktrees**: they do not transfer. Both MacBook worktrees (`ai-scoring`, `stock-tracker-theme`) were removed on 2026-10-12 after confirming neither held work missing from its pushed branch. Recreate worktrees on the Studio from the branches if needed.
