@@ -6,7 +6,7 @@ The plan assumes the Mac Studio uses the same username (`rich`) and the same pat
 
 ## Status
 
-- [x] Source pushed to `https://github.com/audiomojo/pixel-magic.git` (`main`, `feature/ai-photo-scoring`, `feature/stock-tracker-theme`)
+- [x] Source pushed to `https://github.com/audiomojo/pixel-magic.git` (`main` only)
 - [x] Photo folders and runtime files added to `.gitignore`
 - [x] MacBook worktrees removed (`.worktrees/` is empty)
 - [ ] Non-git files copied to the Mac Studio
@@ -17,7 +17,7 @@ The plan assumes the Mac Studio uses the same username (`rich`) and the same pat
 
 | Item | Size | In git? | How it moves |
 |---|---|---|---|
-| Source code (`main` + 2 feature branches) | 3.7 MB | Yes | `git clone` from GitHub |
+| Source code (`main`) | 3.7 MB | Yes | `git clone` from GitHub |
 | `test-photos/` (needed by `scripts/test-grouping.ts` and `scripts/test-scoring.ts`) | 5.5 GB | No (ignored) | Copy |
 | `processing-inbound/` | 5.3 GB | No (ignored) | Copy, if the photos are still wanted |
 | `AI Testing/` | 51 MB | No (ignored) | Copy |
@@ -111,5 +111,5 @@ Keep the MacBook copy untouched until steps 5–7 pass.
 ## Open items
 
 - **Cached file paths**: not yet checked whether `cache.db` stores absolute image paths. If it does and paths change, the cache needs a rescan.
-- **Feature branches**: `feature/ai-photo-scoring` and `feature/stock-tracker-theme` were pushed as-is. Their work appears to be on `main` already as re-created commits (matched by commit title and patch identity, not line by line). Delete them once that is confirmed.
-- **Worktrees**: they do not transfer. Both MacBook worktrees (`ai-scoring`, `stock-tracker-theme`) were removed on 2026-10-12 after confirming neither held work missing from its pushed branch. Recreate worktrees on the Studio from the branches if needed.
+- **Feature branches**: `feature/ai-photo-scoring` and `feature/stock-tracker-theme` were deleted from GitHub on 2026-10-12 and now exist only on the MacBook, so a clone on the Studio will not include them. Their work appears to be on `main` already as re-created commits (matched by commit title and patch identity, not line by line). Push them again before retiring the MacBook if they should be kept.
+- **Worktrees**: they do not transfer. Both MacBook worktrees (`ai-scoring`, `stock-tracker-theme`) were removed on 2026-10-12 after confirming neither held work missing from its branch.
