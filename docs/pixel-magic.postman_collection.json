@@ -1,0 +1,49 @@
+{
+  "info": {
+    "name": "Pixel Magic",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3010"
+    },
+    {
+      "key": "groupId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Next Group (sets groupId)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const groups = pm.response.json();",
+              "if (groups.length > 0) {",
+              "  pm.collectionVariables.set('groupId', groups[0].id);",
+              "  console.log('Next group ID:', groups[0].id);",
+              "} else {",
+              "  console.log('No pending groups');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/groups"
+      }
+    },
+    {
+      "name": "Get Group with Images",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/groups/{{groupId}}"
+      }
+    }
+  ]
+}
