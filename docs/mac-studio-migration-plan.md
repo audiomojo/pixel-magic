@@ -111,5 +111,5 @@ Keep the MacBook copy untouched until steps 5–7 pass.
 ## Open items
 
 - **Cached file paths**: not yet checked whether `cache.db` stores absolute image paths. If it does and paths change, the cache needs a rescan.
-- **Feature branches**: `feature/ai-photo-scoring` and `feature/stock-tracker-theme` were deleted from GitHub on 2026-10-12 and now exist only on the MacBook, so a clone on the Studio will not include them. Their work appears to be on `main` already as re-created commits (matched by commit title and patch identity, not line by line). Push them again before retiring the MacBook if they should be kept.
+- **Feature branches**: `feature/ai-photo-scoring` and `feature/stock-tracker-theme` were deleted from GitHub and from the MacBook on 2026-10-12. Their work appears to be on `main` already as re-created commits (matched by commit title and patch identity, not line by line). The old tips (`575a8a3` and `fb20b68`) stay recoverable from the MacBook repo's reflog for a limited time, e.g. `git branch feature/ai-photo-scoring 575a8a3`.
 - **Worktrees**: they do not transfer. Both MacBook worktrees (`ai-scoring`, `stock-tracker-theme`) were removed on 2026-10-12 after confirming neither held work missing from its branch.
