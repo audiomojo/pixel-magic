@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
 import heicConvert from 'heic-convert';
-import { SCORE_PROMPT } from '../lib/scorer';
+import { SCORE_PROMPT, TIEBREAK_PROMPT } from '../lib/scorer';
 import { readConfig } from '../lib/config';
 import type { AiScoreDetail, AppConfig } from '../types/index';
 
@@ -109,6 +109,48 @@ async function main() {
   for (const s of scored) {
     if (!byGroup.has(s.group)) byGroup.set(s.group, []);
     byGroup.get(s.group)!.push(s);
+  }
+
+  // Run tiebreak tournament among all images sharing the top score
+  async function runTiebreak(img1: ScoredImage, img2: ScoredImage): Promise<{ winner: ScoredImage; loser: ScoredImage }> {
+    const [b1, b2] = await Promise.all([toBase64(img1.filePath), toBase64(img2.filePath)]);
+    const res = await fetch(`${ollamaUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt: TIEBREAK_PROMPT, images: [b1, b2], stream: false, format: 'json' }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as { response: string };
+    const tb = JSON.parse(data.response) as { photo1Score: number; photo2Score: number; rationale: string };
+    if (tb.photo1Score >= tb.photo2Score) {
+      img1.score = tb.photo1Score;
+      img2.score = tb.photo2Score;
+      return { winner: img1, loser: img2 };
+    } else {
+      img1.score = tb.photo1Score;
+      img2.score = tb.photo2Score;
+      return { winner: img2, loser: img1 };
+    }
+  }
+
+  for (const [, images] of byGroup) {
+    images.sort((a, b) => b.score - a.score);
+    const topScore = images[0].score;
+    const tied = images.filter(i => i.score === topScore);
+    if (tied.length < 2) continue;
+
+    // Sequential knockout: champion vs each challenger in turn
+    let champion = tied[0];
+    for (let i = 1; i < tied.length; i++) {
+      const challenger = tied[i];
+      try {
+        process.stdout.write(`  tiebreak ${champion.variant} vs ${challenger.variant}...`);
+        const { winner, loser } = await runTiebreak(champion, challenger);
+        process.stdout.write(` resolved (${winner.variant}=${winner.score} ${loser.variant}=${loser.score})\n`);
+        champion = winner;
+      } catch { process.stdout.write(' error\n'); }
+    }
+    images.sort((a, b) => b.score - a.score);
   }
 
   console.log('\n--- Results ---\n');

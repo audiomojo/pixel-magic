@@ -18,34 +18,36 @@ import type { AppConfig, AiScoreDetail } from '@/types';
 
 let scorerRunning = false;
 
-export const SCORE_PROMPT = `You are an expert photo curator. Analyze this photo and return a JSON score.
+export const SCORE_PROMPT = `You are an expert photo editor selecting the single best shot from a burst sequence. These photos were taken seconds apart — your job is to find the subtle differences that make one shot superior.
 
-First, classify the primary content:
-- "portrait": one or more people with visible faces are the prominent subjects
-- "landscape": outdoor or indoor scene without prominent people
-- "other": objects, abstract, pets, or unclear
+Classify the photo:
+- "portrait": people with visible faces are the primary subject
+- "landscape": scene, event, or environment without close-up faces
+- "other": objects, abstract, pets
 
-Score each criterion 0 to its maximum based on what you actually observe in this specific photo:
+Score each criterion honestly based on what you actually observe:
 
 ALL PHOTOS:
-- sharpness: 0-25 (is the primary subject in crisp focus?)
-- exposure: 0-20 (well-lit, no blown highlights or crushed shadows?)
-- composition: 0-15 (balanced framing, clean background, good use of space)
-- color: 0-10 (natural white balance, pleasing saturation)
+- sharpness: 0-25 (primary subject in crisp focus? Penalise motion blur, soft focus, or camera shake)
+- exposure: 0-20 (well-exposed with detail in highlights and shadows?)
+- composition: 0-15 (assess carefully: Does the frame capture the FULL subject or scene, or only a partial/awkward angle? Is the horizon level? Are all important subjects fully in frame and well-placed? For group shots, are ALL people fully visible and not cropped? A shot that shows the complete scene or all subjects scores higher than one that cuts them off or shows only part of the subject)
+- color: 0-10 (white balance accurate, colours natural, no unwanted cast)
 
 PORTRAIT ONLY (use null for non-portrait):
-- eyesOpen: 0-10 (both eyes clearly open and visible)
-- expression: 0-10 (genuine smile or candid natural moment, not stiff or posed)
-- faceSharpness: 0-10 (face in sharp focus and prominent in the frame)
+- eyesOpen: 0-10 (every visible eye fully open? Half-closed = −4 minimum, closed = −8 minimum)
+- expression: 0-15 (genuine natural expression? Peak of laugh, real smile, candid authenticity scores highest; forced, stiff, or mid-transition scores near 0)
+- faceSharpness: 0-10 (face itself sharp? Soft facial features lower this score)
+- moment: 0-10 (did the shutter fire at the exact peak? Peak of laughter, strongest connection between subjects, most alive instant)
 
-Score calculation:
-- Portrait: score = sharpness + exposure + composition + color + eyesOpen + expression + faceSharpness
-- Non-portrait: score = round((sharpness + exposure + composition + color) / 70 * 100)
+NON-PORTRAIT (use null for portrait):
+- moment: 0-10 (scene completeness and timing — does this frame capture the FULL scene at its best angle? A wide shot showing the complete landscape scores higher than a partial or close-cropped view of the same scene; also reward best light angle and cleanest version)
 
-Evaluate the actual photo carefully. Scores must reflect what you observe — a blurry photo must score low on sharpness, a dark photo must score low on exposure.
+Score formula:
+- Portrait: score = round((sharpness + exposure + composition + color + eyesOpen + expression + faceSharpness + moment) / 115 * 100)
+- Non-portrait: score = round((sharpness + exposure + composition + color + moment) / 80 * 100)
 
-Return ONLY valid JSON with your actual observations, no other text:
-{"contentType":"<portrait|landscape|other>","sharpness":<integer 0-25>,"exposure":<integer 0-20>,"composition":<integer 0-15>,"color":<integer 0-10>,"eyesOpen":<integer 0-10 or null>,"expression":<integer 0-10 or null>,"faceSharpness":<integer 0-10 or null>,"score":<integer 0-100>,"rationale":"<one sentence describing what you actually see>"}`;
+Return ONLY valid JSON — rationale must name the SPECIFIC feature that distinguishes this shot:
+{"contentType":"<portrait|landscape|other>","sharpness":<0-25>,"exposure":<0-20>,"composition":<0-15>,"color":<0-10>,"eyesOpen":<0-10 or null>,"expression":<0-15 or null>,"faceSharpness":<0-10 or null>,"moment":<0-10 or null>,"score":<0-100>,"rationale":"<one sentence on the specific strength or weakness that distinguishes this shot>"}`;
 
 export const TIEBREAK_PROMPT = `You are an expert photo curator. Two photos scored equally and you must differentiate them.
 

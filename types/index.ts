@@ -11,6 +11,7 @@ export type AiScoreDetail = {
   eyesOpen: number | null;
   expression: number | null;
   faceSharpness: number | null;
+  moment: number | null;
   score: number;
   rationale: string;
   tiebreak?: boolean;
