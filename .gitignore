@@ -49,7 +49,10 @@ next-env.d.ts
 # pixel-magic runtime files
 config.json
 cache.db
+cache.db-shm
+cache.db-wal
 scan.log
+build.log
 
 # test files
 test-photos/
